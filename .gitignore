@@ -1,0 +1,40 @@
+# 忽略测试结果
+/resources/result_files/*
+
+# 忽略所有的.a文件
+*.a
+
+# 忽略所有的.o文件
+*.o
+
+# 忽略所有的.pyc文件
+*.pyc
+
+# 忽略所有的.so文件
+*.so
+
+# 忽略所有的.dylib文件
+*.dylib
+
+# 忽略所有的.cmake文件
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+
+# 忽略build/目录
+/build/
+
+# 忽略.idea/目录
+/.idea/
+
+# 忽略所有的日志文件
+*.log
+
+# 忽略所有的临时文件
+*~
