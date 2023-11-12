@@ -1,8 +1,8 @@
 global_config:
-  result_dir: "../resources/result_files"
-  source_dir: "../resources/source_files"
+  result_dir: "resources/result_files"
+  source_dir: "resources/source_files"
 
-zip_test_config:
+deflate_test_config:
   compress_level: 
     - 1
     - 2

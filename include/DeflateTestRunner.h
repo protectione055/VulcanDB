@@ -6,11 +6,12 @@
 #include <string>
 
 #include "TestRunnerInterface.h"
+#include "TestUtil.h"
 #include "zlib.h"
 
 namespace compbench {
 
-class Zip {
+class Deflate {
  public:
   const static long int CHUNCK_SIZE = 16384;
 
@@ -31,11 +32,38 @@ class Zip {
                          const std::string& output_filename);
 };
 
-// 负责测试Zip压缩算法
-class ZipTestRunner : public TestRunnerInterface {
+// 从输入文件流读入数据，通过zip压缩后写入输出流
+class ZipTask : public testutil::Converter {
+  friend class DeflateTestRunner;
+
  public:
-  ZipTestRunner() = default;
-  ~ZipTestRunner() = default;
+  int level = Z_DEFAULT_COMPRESSION;
+  long int chunck_size = 16384;
+
+  ZipTask(int level = Z_DEFAULT_COMPRESSION, long int chunck_size = 16384)
+      : level(level), chunck_size(chunck_size) {}
+
+  void convert(const std::string& input_file, const std::string& output_file) {
+    Deflate::compress(input_file, output_file, level, chunck_size);
+  }
+
+  void operator()(const std::string& input_filename,
+                  const std::string& output_filename) {
+    convert(input_filename, output_filename);
+  }
+
+  // 返回测试算法名称及参数
+  std::string method_name() {
+    return "Deflate-level" + std::to_string(level) + "-chksize" +
+           std::to_string(chunck_size);
+  }
+};
+
+// 负责测试Deflate压缩算法
+class DeflateTestRunner : public TestRunnerInterface {
+ public:
+  DeflateTestRunner() = default;
+  ~DeflateTestRunner() = default;
 
   void setup(std::string workding_dir, std::string data_dir);
   void run();
@@ -62,20 +90,6 @@ class ZipTestRunner : public TestRunnerInterface {
   std::filesystem::path data_dir_;
   std::vector<int> compress_levels_ = {Z_DEFAULT_COMPRESSION};
   std::vector<long int> chunk_sizes_ = {16384};
-
-  // 从输入文件流读入数据，通过zip压缩后写入输出流
-  struct ZipTask {
-    int level = Z_DEFAULT_COMPRESSION;
-    long int chunck_size = 16384;
-
-    ZipTask(int level = Z_DEFAULT_COMPRESSION, long int chunck_size = 16384)
-        : level(level), chunck_size(chunck_size) {}
-
-    void operator()(const std::string& input_filename,
-                    const std::string& output_filename) {
-      Zip::compress(input_filename, output_filename, level, chunck_size);
-    }
-  };
 };
 
 }  // namespace compbench

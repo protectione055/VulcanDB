@@ -2,15 +2,20 @@
 #include <iostream>
 #include <string>
 
-#include "ZipTestRunner.h"
+#include "DeflateTestRunner.h"
 #include "yaml-cpp/yaml.h"
 
 void clear_directory(const std::filesystem::path& path);
 
 int main() {
   try {
+    while (std::filesystem::current_path().filename() !=
+           "ifc-compression-benchmark") {
+      std::filesystem::current_path("..");
+    }
+
     // 读取配置文件并进行初始化
-    std::string config_file = "../config.yaml";
+    std::string config_file = "config.yaml";
     YAML::Node config = YAML::LoadFile(config_file);
     if (!config["global_config"].IsDefined()) {
       std::cerr << "[ERROR] \"global_config\" is not defined in config.yaml"
@@ -33,9 +38,9 @@ int main() {
     }
 
     // 执行zip算法压缩测试
-    YAML::Node zip_config = config["zip_test_config"];
-    YAML::Node compress_level_vector = zip_config["compress_level"];
-    YAML::Node chunk_size_vector = zip_config["chunk_size"];
+    YAML::Node deflate_config = config["deflate_test_config"];
+    YAML::Node compress_level_vector = deflate_config["compress_level"];
+    YAML::Node chunk_size_vector = deflate_config["chunk_size"];
     std::vector<int> compress_levels;
     std::vector<long int> chunk_sizes;
 
@@ -47,14 +52,14 @@ int main() {
       chunk_sizes.push_back(std::stol(chunk_size_vector[i].Scalar()));
     }
 
-    compbench::ZipTestRunner zip_runner;
-    zip_runner.setup(WORKING_DIR, DATA_DIR);
-    zip_runner.set_compress_levels(compress_levels);
-    zip_runner.set_chunk_sizes(chunk_sizes);
-    zip_runner.run();
-    zip_runner.teardown();
+    compbench::DeflateTestRunner deflate_runner;
+    deflate_runner.setup(WORKING_DIR, DATA_DIR);
+    deflate_runner.set_compress_levels(compress_levels);
+    deflate_runner.set_chunk_sizes(chunk_sizes);
+    deflate_runner.run();
+    deflate_runner.teardown();
   } catch (const std::exception& e) {
-    std::cerr << "[Zip Test Failed] " << e.what() << std::endl;
+    std::cerr << "[Deflate Test Failed] " << e.what() << std::endl;
     exit(1);
   }
 

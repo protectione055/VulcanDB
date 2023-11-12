@@ -1,6 +1,6 @@
 
 
-#include "ZipTestRunner.h"
+#include "DeflateTestRunner.h"
 
 #include <assert.h>
 
@@ -10,13 +10,11 @@
 #include <sstream>
 #include <string>
 
-#include "TestUtil.h"
-
 namespace compbench {
 
-void Zip::compress(const std::string& input_filename,
-                   const std::string& output_filename, int level,
-                   long int chunck_size) {
+void Deflate::compress(const std::string& input_filename,
+                       const std::string& output_filename, int level,
+                       long int chunck_size) {
   int ret, flush;
   unsigned have;
   z_stream strm;
@@ -65,16 +63,16 @@ void Zip::compress(const std::string& input_filename,
   fclose(dest);
 }
 
-void ZipTestRunner::setup(std::string workding_dir, std::string data_dir) {
+void DeflateTestRunner::setup(std::string workding_dir, std::string data_dir) {
   std::filesystem::path working_dir_path(workding_dir);
-  working_dir_path /= "zip";
+  working_dir_path /= "deflate";
   working_dir_ = working_dir_path;
 
   std::filesystem::path data_dir_path(data_dir);
   data_dir_ = data_dir_path;
 }
 
-void ZipTestRunner::run() {
+void DeflateTestRunner::run() {
   for (int level : compress_levels_) {
     for (long int chunk_size : chunk_sizes_) {
       ZipTask zip_task(level, chunk_size);
@@ -82,9 +80,7 @@ void ZipTestRunner::run() {
         std::string sub_directory = ("level" + std::to_string(level) +
                                      "-csize" + std::to_string(chunk_size));
         std::filesystem::path result_dir = working_dir_ / sub_directory;
-        traverseDir(data_dir_, result_dir, ".ifc", ".ifcZIP",
-                    std::function<void(const std::string&, const std::string&)>(
-                        zip_task));
+        traverseDir(data_dir_, result_dir, ".ifc", ".ifcZIP", zip_task);
       } catch (const std::exception& e) {
         std::cerr << "[EXCEPTION] " << e.what() << std::endl;
       }
@@ -92,6 +88,6 @@ void ZipTestRunner::run() {
   }
 }
 
-void ZipTestRunner::teardown() {}
+void DeflateTestRunner::teardown() {}
 
 }  // namespace compbench
