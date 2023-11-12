@@ -4,6 +4,7 @@
 
 #include <assert.h>
 
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -74,21 +75,21 @@ void ZipTestRunner::setup(std::string workding_dir, std::string data_dir) {
 }
 
 void ZipTestRunner::run() {
-  // 从输入文件流读入数据，通过zip压缩后写入输出流
-  struct ZipTask {
-    int level = Z_DEFAULT_COMPRESSION;
-    long int chunck_size = 16384;
-
-    void operator()(const std::string& input_filename,
-                    const std::string& output_filename) {
-      Zip::compress(input_filename, output_filename, level, chunck_size);
+  for (int level : compress_levels_) {
+    for (long int chunk_size : chunk_sizes_) {
+      ZipTask zip_task(level, chunk_size);
+      try {
+        std::string sub_directory = ("level" + std::to_string(level) +
+                                     "-csize" + std::to_string(chunk_size));
+        std::filesystem::path result_dir = working_dir_ / sub_directory;
+        traverseDir(data_dir_, result_dir, ".ifc", ".ifcZIP",
+                    std::function<void(const std::string&, const std::string&)>(
+                        zip_task));
+      } catch (const std::exception& e) {
+        std::cerr << "[EXCEPTION] " << e.what() << std::endl;
+      }
     }
-  };
-
-  ZipTask zip_task;
-  compbench::traverseDir(
-      data_dir_, working_dir_, ".ifc", ".ifcZIP",
-      std::function<void(const std::string&, const std::string&)>(zip_task));
+  }
 }
 
 void ZipTestRunner::teardown() {}

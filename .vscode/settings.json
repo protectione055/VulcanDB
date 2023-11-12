@@ -66,6 +66,11 @@
 		"typeinfo": "cpp",
 		"variant": "cpp",
 		"codecvt": "cpp",
-		"filesystem": "cpp"
+		"filesystem": "cpp",
+		"any": "cpp",
+		"valarray": "cpp"
+	},
+	"yaml.schemas": {
+		"https://json.schemastore.org/yamllint.json": "file:///home/zzm/projects/ifc-compression-benchmark/config.yaml"
 	}
 }

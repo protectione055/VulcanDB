@@ -1,0 +1,17 @@
+global_config:
+  result_dir: "../resources/result_files"
+  source_dir: "../resources/source_files"
+
+zip_test_config:
+  compress_level: 
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+  chunk_size: 
+    - 16384

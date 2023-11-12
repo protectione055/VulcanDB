@@ -31,8 +31,13 @@ void traverseDir(
     //处理输入文件
     std::string input_filename = entry.path().string();
     std::string output_filename = output_dir / relative_path;
-    output_filename.replace(output_filename.find(origin_postfix),
-                            origin_postfix.length(), target_postfix);
+    size_t replace_pos = output_filename.find(origin_postfix);
+    if (replace_pos == std::string::npos) {
+      output_filename += target_postfix;
+    } else {
+      output_filename.replace(replace_pos, origin_postfix.length(),
+                              target_postfix);
+    }
     convert_func(input_filename, output_filename);
   }
 }
