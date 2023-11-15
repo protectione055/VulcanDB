@@ -3,7 +3,7 @@
 
 #include <fstream>
 
-namespace testutil {
+namespace compbench {
 
 std::string TestWatcher::get_header() const {
   std::string header =
@@ -37,6 +37,7 @@ std::string TestWatcher::get_result() const {
   return result;
 }
 
+// 遍历目录，对目录下的所有文件执行转换
 void traverseDir(const std::filesystem::path& root_dir,
                  const std::filesystem::path& output_dir,
                  std::string origin_postfix, std::string target_postfix,
@@ -48,7 +49,7 @@ void traverseDir(const std::filesystem::path& root_dir,
 
   // 初始化结果输出文件
   try {
-    testutil::TestWatcher test_watcher;
+    compbench::TestWatcher test_watcher;
     std::ofstream profile_file(output_dir.parent_path() / "profile.csv",
                                std::ios::app);
     profile_file << test_watcher.get_header() << std::endl;
@@ -97,4 +98,4 @@ void traverseDir(const std::filesystem::path& root_dir,
   }
 }
 
-}  // namespace testutil
+}  // namespace compbench

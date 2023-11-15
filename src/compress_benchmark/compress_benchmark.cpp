@@ -1,45 +1,54 @@
 // Copyright 2023 Ziming Zhang
+#include <unistd.h>
+
 #include <fstream>
 #include <iostream>
 #include <string>
 
 #include "DeflateTestRunner.h"
+#include "IfcCompressorTestRunner.h"
+#include "common/vulcan_utility.h"
+#include "execution/IfcSpfLoader.h"
 #include "yaml-cpp/yaml.h"
 
+void load_config(const std::string& config_file);
 void clear_directory(const std::filesystem::path& path);
+void run_deflate_test();
+void run_ifccompressor_test();
 
-int main() {
+// 配置文件路径
+std::string g_config_file =
+    "/home/zzm/projects/ifc-compression-benchmark/configs/"
+    "benchmark_config.yaml";
+YAML::Node g_config;
+// 工作目录
+std::string g_working_dir;
+// 数据目录
+std::string g_data_dir;
+
+int main(int argc, char** argv) {
+  int para;
+  while ((para = getopt(argc, argv, "c::")) != -1) {
+    switch (para) {
+      case 'c':
+        g_config_file = optarg;
+        break;
+    }
+  }
+
+  load_config(g_config_file);
+
+  //   run_deflate_test();
+  run_ifccompressor_test();
+
+  std::cout << "All Test Runned Successfully! Weee!" << std::endl;
+  return 0;
+}
+
+// 执行deflate算法压缩测试
+void run_deflate_test() {
   try {
-    while (std::filesystem::current_path().filename() !=
-           "ifc-compression-benchmark") {
-      std::filesystem::current_path("..");
-    }
-
-    // 读取配置文件并进行初始化
-    std::string config_file = "config.yaml";
-    YAML::Node config = YAML::LoadFile(config_file);
-    if (!config["global_config"].IsDefined()) {
-      std::cerr << "[ERROR] \"global_config\" is not defined in config.yaml"
-                << std::endl;
-      exit(1);
-    }
-
-    YAML::Node global_config = config["global_config"];
-    const std::string WORKING_DIR = global_config["result_dir"].Scalar();
-    const std::string DATA_DIR = global_config["source_dir"].Scalar();
-
-    if (!std::filesystem::exists(WORKING_DIR)) {
-      std::filesystem::create_directory(WORKING_DIR);
-    }
-    clear_directory(WORKING_DIR);
-
-    if (!std::filesystem::exists(DATA_DIR)) {
-      std::cerr << "Error: " << DATA_DIR << " does not exist." << std::endl;
-      exit(1);
-    }
-
-    // 执行zip算法压缩测试
-    YAML::Node deflate_config = config["deflate_test_config"];
+    YAML::Node deflate_config = g_config["deflate_test_config"];
     YAML::Node compress_level_vector = deflate_config["compress_level"];
     YAML::Node chunk_size_vector = deflate_config["chunk_size"];
     std::vector<int> compress_levels;
@@ -54,7 +63,7 @@ int main() {
     }
 
     compbench::DeflateTestRunner deflate_runner;
-    deflate_runner.setup(WORKING_DIR, DATA_DIR);
+    deflate_runner.setup(g_working_dir, g_data_dir);
     deflate_runner.set_compress_levels(compress_levels);
     deflate_runner.set_chunk_sizes(chunk_sizes);
     deflate_runner.run();
@@ -63,9 +72,64 @@ int main() {
     std::cerr << "[Deflate Test Failed] " << e.what() << std::endl;
     exit(1);
   }
+}
 
-  std::cout << "All Test Runned Successfully! Weee!" << std::endl;
-  return 0;
+// 执行ifc-compressor算法压缩测试
+void run_ifccompressor_test() {
+  try {
+    YAML::Node ifccompressor_config = g_config["ifccompressor_test_config"];
+    YAML::Node fpr_node = ifccompressor_config["fpr"];
+    std::vector<float> fpr_vector;
+
+    for (size_t i = 0; i < fpr_node.size(); ++i) {
+      fpr_vector.push_back(std::stoi(fpr_node[i].Scalar()));
+    }
+
+    compbench::IfcCompressorTestRunner ifc_compressor_runner;
+    ifc_compressor_runner.set_fpr_vector(fpr_vector);
+    ifc_compressor_runner.setup(g_data_dir, g_working_dir);
+    ifc_compressor_runner.run();
+    ifc_compressor_runner.teardown();
+  } catch (const std::exception& e) {
+    std::cerr << "[IfcCompressor Test Failed] " << e.what() << std::endl;
+    exit(1);
+  }
+}
+
+void load_config(const std::string& config_file) {
+  try {
+    g_config = YAML::LoadFile(config_file);
+    if (!g_config["global_config"].IsDefined()) {
+      std::cerr << "[ERROR] \"global_config\" is not defined in config.yaml"
+                << std::endl;
+      exit(1);
+    }
+
+    YAML::Node global_config = g_config["global_config"];
+    g_working_dir = global_config["result_dir"].Scalar();
+    g_data_dir = global_config["source_dir"].Scalar();
+
+    if (!std::filesystem::exists(g_working_dir)) {
+      std::filesystem::create_directory(g_working_dir);
+    }
+    clear_directory(g_working_dir);
+
+    if (!std::filesystem::exists(g_data_dir)) {
+      std::cerr << "Error: " << g_data_dir << " does not exist." << std::endl;
+      exit(1);
+    }
+
+    // 对目录下的文件进行预处理
+    for (auto& entry :
+         std::filesystem::recursive_directory_iterator(g_data_dir)) {
+      if (entry.path().extension() == ".ifc") {
+        vulcan::replace_win_newlines_to_unix(entry.path());
+      }
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "[ERROR] " << e.what() << std::endl;
+    exit(1);
+  }
 }
 
 void clear_directory(const std::filesystem::path& path) {

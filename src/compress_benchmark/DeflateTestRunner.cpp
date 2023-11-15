@@ -74,12 +74,11 @@ void DeflateTestRunner::setup(std::string workding_dir, std::string data_dir) {
 
 void DeflateTestRunner::run() {
   for (int level : compress_levels_) {
-    for (long int chunk_size : chunk_sizes_) {
-      ZipTask zip_task(level, chunk_size);
+    for (int64_t chunk_size : chunk_sizes_) {
+      ZipConverter zip_task(level, chunk_size);
       try {
-        std::string sub_directory = ("level" + std::to_string(level) +
-                                     "-csize" + std::to_string(chunk_size));
-        std::filesystem::path result_dir = working_dir_ / sub_directory;
+        std::filesystem::path result_dir =
+            working_dir_ / zip_task.method_name();
         traverseDir(data_dir_, result_dir, ".ifc", ".ifcZIP", zip_task);
       } catch (const std::exception& e) {
         std::cerr << "[EXCEPTION] " << e.what() << std::endl;

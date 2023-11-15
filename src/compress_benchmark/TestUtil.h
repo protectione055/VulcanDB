@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace testutil {
+namespace compbench {
 
 class Converter;
 
@@ -81,7 +81,7 @@ class Converter {
 
   virtual void convert(const std::string& input_file,
                        const std::string& output_file) = 0;
-  virtual std::string method_name() = 0;
+  virtual std::string method_name() const = 0;
 };
 
 /*接受一个转换函数作为参数，递归遍历目录的每个文件，对每个输入流执行该函数并转换为一个输出流
@@ -99,4 +99,4 @@ void traverseDir(const std::filesystem::path& root_dir,
                  std::string origin_postfix, std::string target_postfix,
                  Converter& converter);
 
-}  // namespace testutil
+}  // namespace compbench

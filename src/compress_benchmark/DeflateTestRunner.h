@@ -37,15 +37,15 @@ class Deflate {
 };
 
 // 从输入文件流读入数据，通过zip压缩后写入输出流
-class ZipTask : public testutil::Converter {
+class ZipConverter : public compbench::Converter {
   friend class DeflateTestRunner;
 
  public:
   int level = Z_DEFAULT_COMPRESSION;
   int64_t chunck_size = 16384;
 
-  explicit ZipTask(int level = Z_DEFAULT_COMPRESSION,
-                   int64_t chunck_size = 16384)
+  explicit ZipConverter(int level = Z_DEFAULT_COMPRESSION,
+                        int64_t chunck_size = 16384)
       : level(level), chunck_size(chunck_size) {}
 
   void convert(const std::string& input_file, const std::string& output_file) {
@@ -58,7 +58,7 @@ class ZipTask : public testutil::Converter {
   }
 
   // 返回测试算法名称及参数
-  std::string method_name() {
+  std::string method_name() const {
     return "Deflate-level" + std::to_string(level) + "-chksize" +
            std::to_string(chunck_size);
   }

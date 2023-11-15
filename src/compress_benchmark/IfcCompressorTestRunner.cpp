@@ -20,7 +20,19 @@ void IfcCompressorTestRunner::setup(std::string input_dir,
 }
 
 void IfcCompressorTestRunner::run() {
-  std::cout << "IfcCompressorTestRunner::run()" << std::endl;
+  std::cout << "IfcCompressor Test is running..." << std::endl;
+
+  IfcCompressorConverter ifc_compressor;
+  for (float fpr : fpr_vector_) {
+    ifc_compressor.set_fpr(fpr);
+    std::filesystem::path output_dir =
+        std::filesystem::path(output_dir_) / ifc_compressor.method_name();
+    if (!std::filesystem::exists(output_dir)) {
+      std::filesystem::create_directories(output_dir);
+      std::cout << output_dir << " not found. Create it." << std::endl;
+    }
+    traverseDir(input_dir_, output_dir, ".ifc", ".ifc", ifc_compressor);
+  }
 }
 
 void IfcCompressorTestRunner::teardown() {
