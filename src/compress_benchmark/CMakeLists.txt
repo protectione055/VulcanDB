@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
-include_directories(include)
 include_directories(../../third_party/)
-file(GLOB_RECURSE BENCHMARK_SOURCES ${CMAKE_SOURCE_DIR}/src/compress_benchmark/*.cpp)
+file(GLOB_RECURSE BENCHMARK_SOURCES ${SRC_DIR}/compress_benchmark/*.cpp)
 add_executable(ifc-compression-benchmark ${BENCHMARK_SOURCES})
 
 
@@ -13,3 +12,4 @@ if(ZLIB_FOUND)
 endif()
 
 target_link_libraries(ifc-compression-benchmark yaml-cpp)
+target_link_libraries(ifc-compression-benchmark vulcan_core)

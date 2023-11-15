@@ -1,0 +1,23 @@
+global_config:
+  result_dir: "/home/zzm/projects/ifc-compression-benchmark/resources/result_files"
+  source_dir: "/home/zzm/projects/ifc-compression-benchmark/resources/source_files"
+
+deflate_test_config:
+  compress_level: 
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+  chunk_size: 
+    - 16384
+
+ifccompressor_test_config:
+  fpr:
+    - 0
+    - 0.01
+    - 0.1
