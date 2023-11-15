@@ -6,25 +6,61 @@ set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
 include(CPack)
 include(CTest)
+include(GNUInstallDirs)
 enable_testing()
 
-# 设置编译选项
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -O2")
-set(CMAKE_BUILD_TYPE Debug)
+include_directories(src)
 
-
-# 添加目标执行文件
-include_directories(include)
-include_directories(third_party/)
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-add_executable(ifc-compression-benchmark ${SOURCES})
-
-# 添加链接库
-find_package(ZLIB REQUIRED)
-if(ZLIB_FOUND)
-	include_directories(${ZLIB_INCLUDE_DIRS})
-	target_link_libraries(ifc-compression-benchmark ${ZLIB_LIBRARIES})
+###############################################################
+#   设置构建选项
+###############################################################
+if(NOT IS_ABSOLUTE ${INCLUDEDIR})
+    set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
+message(STATUS "INCLUDEDIR: ${INCLUDEDIR}")
 
-add_subdirectory("third_party/yaml-cpp")
-target_link_libraries(ifc-compression-benchmark yaml-cpp)
+set(STORAGE_ENGINE "WiredTiger" CACHE STRING "The storage engine to use")
+
+###############################################################
+#   设置编译选项
+###############################################################
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")
+
+
+
+###############################################################
+#   构建VULCAN_CORE
+###############################################################
+set(SUBMODULES common storage ifcparse)
+set(VULCAN_CORE_SRC)
+set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+foreach(SUB_MODULE ${SUBMODULES})
+    set(SUB_MODULE_DIR ${SRC_DIR}/${SUB_MODULE})
+	if (EXISTS ${SUB_MODULE_DIR})
+		file(GLOB_RECURSE SUBMODULE_SRC ${SRC_DIR}/${SUB_MODULE}/*.cpp)
+		list(APPEND VULCAN_CORE_SRC ${SUBMODULE_SRC})
+	else()
+		message(FATAL_ERROR "Not found CMakeLists.txt in ${SRC_DIR}/${SUB_MODULE}")
+	endif()
+endforeach()
+add_library(vulcan_core SHARED ${VULCAN_CORE_SRC})
+add_subdirectory(${SRC_DIR}/compress_benchmark)
+
+
+###############################################################
+#   构建第三方依赖
+###############################################################
+
+add_subdirectory(third_party/yaml-cpp)
+
+if(${STORAGE_ENGINE} STREQUAL "WiredTiger")
+	find_library(WIREDTIGER_LIB wiredtiger)
+	if(NOT WIREDTIGER_LIB)
+		message(FATAL_ERROR "Not found wiredtiger library")
+	endif()
+	target_link_libraries(vulcan_core ${WIREDTIGER_LIB})
+endif()

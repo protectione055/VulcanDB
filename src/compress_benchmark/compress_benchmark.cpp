@@ -5,10 +5,10 @@
 #include <iostream>
 #include <string>
 
-#include "DeflateTestRunner.h"
-#include "IfcCompressorTestRunner.h"
 #include "common/vulcan_utility.h"
-#include "execution/IfcSpfLoader.h"
+#include "deflate_test_runner.h"
+#include "execution/ifc_spc_loader.h"
+#include "ifccompressor_test_runner.h"
 #include "yaml-cpp/yaml.h"
 
 void load_config(const std::string& config_file);

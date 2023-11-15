@@ -1,7 +1,7 @@
 ## 1. 安装依赖
 
 ```
-sudo apt install zlib1g-dev
+sudo apt install zlib1g-dev boost-dev libboost-all-dev libxml2-dev
 ```
 
 ```
