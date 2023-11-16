@@ -21,6 +21,7 @@ message(STATUS "INCLUDEDIR: ${INCLUDEDIR}")
 
 set(STORAGE_ENGINE "WiredTiger" CACHE STRING "The storage engine to use")
 
+
 ###############################################################
 #   设置编译选项
 ###############################################################
@@ -57,10 +58,30 @@ add_subdirectory(${SRC_DIR}/compress_benchmark)
 
 add_subdirectory(third_party/yaml-cpp)
 
+find_package(Boost REQUIRED)
+if(NOT Boost_FOUND)
+	message(FATAL_ERROR "Not found boost library")
+endif()
+target_link_libraries(vulcan_core ${Boost_LIBRARIES})
+
+find_library(TCMALLOC_LIBRARY NAMES tcmalloc)
+if(NOT TCMALLOC_LIBRARY)
+    message(FATAL_ERROR "tcmalloc library not found")
+endif()
+target_link_libraries(vulcan_core ${TCMALLOC_LIBRARY})
+
+find_package(spdlog REQUIRED)
+if(NOT spdlog_FOUND)
+	message(FATAL_ERROR "Not found spdlog package")
+endif()
+target_link_libraries(vulcan_core spdlog::spdlog)
+
 if(${STORAGE_ENGINE} STREQUAL "WiredTiger")
-	find_library(WIREDTIGER_LIB wiredtiger)
+  find_library(WIREDTIGER_LIB wiredtiger)
 	if(NOT WIREDTIGER_LIB)
-		message(FATAL_ERROR "Not found wiredtiger library")
-	endif()
+		message(FATAL_ERROR "Not found wiredtiger package")
+	else()
+	message("found wiredtiger library ${WIREDTIGER_LIB}")
 	target_link_libraries(vulcan_core ${WIREDTIGER_LIB})
+	endif()
 endif()
