@@ -1,4 +1,4 @@
-// Copyright 2023 protectione055@foxmail.com
+// Copyright 2023 VulcanDB
 
 #pragma once
 
@@ -7,10 +7,10 @@
 #include <string>
 #include <vector>
 
-#include "compress_benchmark/test_runner_interface.h"
-#include "compress_benchmark/test_util.h"
-#include "storage/compression/ifccompressor_impl.h"
 #include "common/vulcan_logger.h"
+#include "experiments/test_runner_interface.h"
+#include "experiments/test_util.h"
+#include "storage/compression/ifccompressor_impl.h"
 
 namespace compbench {
 

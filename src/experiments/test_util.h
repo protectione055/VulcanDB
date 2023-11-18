@@ -1,4 +1,4 @@
-// Copyright 2023 protectione055@foxmail.com
+// Copyright 2023 VulcanDB
 #pragma once
 
 #include <chrono>
@@ -61,7 +61,7 @@ class TestWatcher {
   // 计算压缩速度
   double compress_speed() const;
 
-  // TODO(Ziming Zhang): 获取运行期间的平均内存占用
+  // TODO(VulcanDB): 获取运行期间的平均内存占用
 
  public:
   std::string experiment_name_;

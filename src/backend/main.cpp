@@ -6,13 +6,11 @@
 
 #include "common/defs.h"
 #include "common/vulcan_logger.h"
-#include "common/vulcan_param.h"
+#include "backend/vulcan_param.h"
 
-// global variables
 vulcan::VulcanLogger *vulcan_logger = vulcan::VulcanLogger::get_instance();
 vulcan::VulcanParam *vulcan_param = vulcan::VulcanParam::get_instance();
 
-// function declarations
 void parse_parameter(int argc, char **argv);
 void usage();
 void init_process(const vulcan::VulcanParam *config);
@@ -21,6 +19,8 @@ void init_process(const vulcan::VulcanParam *config);
  * Any vulcandb server process begins execution here.
  */
 int main(int argc, char **argv) {
+  // TODO: 从文件和环境变量中读取配置
+  // 优先级：命令行参数 > (环境变量) > 配置文件
   parse_parameter(argc, argv);
 
   init_process(vulcan_param);
@@ -29,7 +29,6 @@ int main(int argc, char **argv) {
 }
 
 // 解析命令行参数
-// 优先级：命令行参数 > (环境变量) > 配置文件
 void parse_parameter(int argc, char **argv) {
   vulcan_param->default_init(argv[0]);
 
@@ -80,22 +79,18 @@ void usage() {
   exit(0);
 }
 
-// inittialize vulcan_ctl process
+// initialize vulcan_ctl process
 void init_process(const vulcan::VulcanParam *config) {
   try {
-    // TODO: 读取配置文件
-    // TODO: 读取环境变量
-
     // Initialize runtime direcotries
     std::function<void(const char *, const std::filesystem::path &)>
-        check_and_create_dir =
-            [](const char *var_name, const std::filesystem::path &path) {
-              vulcan_logger->info("{}={}", var_name, path.string());
-              if (!std::filesystem::exists(path)) {
-                vulcan_logger->info("creating directory: {}", path.string());
-                std::filesystem::create_directory(path);
-              }
-            };
+        check_and_create_dir = [](const char *var_name,
+                                  const std::filesystem::path &path) {
+          std::printf("%s=%s\n", var_name, path.string().c_str());
+          if (!std::filesystem::exists(path)) {
+            std::filesystem::create_directory(path);
+          }
+        };
     check_and_create_dir(VULCAN_HOME, config->get_home());
     check_and_create_dir(VULCAN_DATA_DIR, config->get_data_dir());
     check_and_create_dir(VULCAN_LOG_DIR, config->get_log_dir());

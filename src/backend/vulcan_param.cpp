@@ -1,6 +1,6 @@
 // Copyright 2023 VulcanDB
 
-#include "common/vulcan_param.h"
+#include "backend/vulcan_param.h"
 
 #include <unistd.h>
 

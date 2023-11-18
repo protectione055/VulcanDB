@@ -1,4 +1,4 @@
-// Copyright 2023 Ziming Zhang
+// Copyright 2023 VulcanDB
 #include <unistd.h>
 
 #include <fstream>
@@ -6,8 +6,8 @@
 #include <string>
 
 #include "common/vulcan_utility.h"
-#include "deflate_test_runner.h"
 #include "execution/ifc_spc_loader.h"
+#include "experiments/compression_benchmark/deflate_test_runner.h"
 #include "ifccompressor_test_runner.h"
 #include "yaml-cpp/yaml.h"
 

@@ -1,4 +1,4 @@
-// Copyright 2023 protectione055@foxmail.com
+// Copyright 2023 VulcanDB
 #include "test_util.h"
 
 #include <fstream>

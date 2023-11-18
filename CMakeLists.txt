@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
-project(ifc-compression-benchmark VERSION 0.1.0 LANGUAGES C CXX)
+project(VulcanDB VERSION 0.1.0 LANGUAGES C CXX)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
@@ -36,21 +36,33 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")
 ###############################################################
 #   构建VULCAN_CORE
 ###############################################################
-set(SUBMODULES common storage ifcparse)
+set(VULCAN_CORE_MODULES
+	"common"
+	"ifcparse"
+	"storage"
+	"execution"
+)
+set(SUBMODULES ${VULCAN_CORE_MODULES})
 set(VULCAN_CORE_SRC)
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 foreach(SUB_MODULE ${SUBMODULES})
     set(SUB_MODULE_DIR ${SRC_DIR}/${SUB_MODULE})
 	if (EXISTS ${SUB_MODULE_DIR})
-		file(GLOB_RECURSE SUBMODULE_SRC ${SRC_DIR}/${SUB_MODULE}/*.cpp)
+		file(GLOB_RECURSE SUBMODULE_SRC ${SUB_MODULE_DIR}/*.cpp ${SUB_MODULE_DIR}/*/*.cpp)
 		list(APPEND VULCAN_CORE_SRC ${SUBMODULE_SRC})
 	else()
 		message(FATAL_ERROR "Not found CMakeLists.txt in ${SRC_DIR}/${SUB_MODULE}")
 	endif()
 endforeach()
 add_library(vulcan_core SHARED ${VULCAN_CORE_SRC})
-add_subdirectory(${SRC_DIR}/compress_benchmark)
+add_subdirectory(${SRC_DIR}/experiments)
 
+###############################################################
+#   构建VULCAN_CTL
+###############################################################
+file(GLOB_RECURSE VULCAN_CTL_SRC ${SRC_DIR}/backend/*.cpp)
+add_executable(vulcan_ctl ${VULCAN_CTL_SRC})
+target_link_libraries(vulcan_ctl vulcan_core)
 
 ###############################################################
 #   构建第三方依赖

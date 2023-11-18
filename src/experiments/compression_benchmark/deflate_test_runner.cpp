@@ -1,6 +1,6 @@
 
 
-#include "deflate_test_runner.h"
+#include "experiments/compression_benchmark/deflate_test_runner.h"
 
 #include <assert.h>
 

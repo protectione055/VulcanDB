@@ -1,4 +1,4 @@
-// Copyright 2023 protectione055@foxmail.com
+// Copyright 2023 VulcanDB
 
 #include "ifccompressor_test_runner.h"
 
