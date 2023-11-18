@@ -1,0 +1,49 @@
+// Copyright 2023 VulcanDB
+#pragma once
+
+#include <filesystem>
+#include <string>
+
+namespace vulcan {
+
+class VulcanParam {
+ public:
+  ~VulcanParam() = default;
+
+  static VulcanParam* get_instance();
+
+  void default_init(const char* prog_name);
+
+  void set_home(const std::filesystem::path& home) { home_ = home; }
+  void set_data_dir(const std::filesystem::path& data_dir) {
+    data_dir_ = data_dir;
+  }
+  void set_log_dir(const std::filesystem::path& log_dir) { log_dir_ = log_dir; }
+  void set_conf_file(const std::filesystem::path& conf_file) {
+    conf_file_ = conf_file;
+  }
+  void set_server_port(int port) { server_port_ = port; }
+  void set_unix_socket_path(const std::filesystem::path& unix_socket_path) {
+    unix_socket_path_ = unix_socket_path;
+  }
+
+  std::string get_process_name() const { return process_name_; }
+  std::filesystem::path get_home() const { return home_; }
+  std::filesystem::path get_data_dir() const { return data_dir_; }
+  std::filesystem::path get_log_dir() const { return log_dir_; }
+
+ private:
+  std::string process_name_;
+  std::filesystem::path home_;              // ~/.vulcandb
+  std::filesystem::path data_dir_;          // 数据文件目录
+  std::filesystem::path log_dir_;           // 日志文件目录
+  std::filesystem::path conf_file_;         // 配置文件路径
+  std::filesystem::path unix_socket_path_;  // unix socket路径
+  int server_port_;                         // 服务器端口
+  bool is_demon_ = false;                   // 是否以守护进程方式运行
+
+  VulcanParam() = default;
+  VulcanParam(const VulcanParam&) = delete;
+};
+
+}  // namespace vulcan

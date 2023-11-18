@@ -1,6 +1,10 @@
-// Copyright 2023 Ziming Zhang
+// Copyright 2023 VulcanDB
 
 #include "common/vulcan_utility.h"
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -16,7 +20,8 @@ std::filesystem::path create_temp_directory() {
       std::filesystem::temp_directory_path().string() + "/my_temp_dir_XXXXXX";
   char* temp_dir_name = mkdtemp(const_cast<char*>(temp_dir_template.c_str()));
   if (temp_dir_name == nullptr) {
-    throw std::runtime_error("Failed to create temporary directory");
+    throw std::runtime_error("Failed to create temporary directory \"" +
+                             temp_dir_template + "\"");
   }
   return std::filesystem::path(temp_dir_name);
 }
