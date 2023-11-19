@@ -81,6 +81,7 @@ void usage() {
 // initialize vulcan_ctl process
 void init_process(const vulcan::VulcanParam *config) {
   try {
+    VULCAN_LOG(info, "initialing vulcan_ctl process...");
     // Initialize runtime direcotries
     std::function<void(const char *, const std::filesystem::path &)>
         check_and_create_dir = [](const char *var_name,

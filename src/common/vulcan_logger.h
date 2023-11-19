@@ -39,6 +39,7 @@ class VulcanLogger {
   void init(const std::filesystem::path& log_dir, const std::string& log_name,
             LOG_LEVEL log_level = INFO, LOG_LEVEL console_level = WARN);
 
+  bool is_init() const { return is_init_; }
   LOG_LEVEL get_log_level() const { return log_level_; }
 
   template <typename... Args>
@@ -62,6 +63,7 @@ class VulcanLogger {
   }
 
  private:
+  bool is_init_ = false;
   std::unique_ptr<spdlog::logger> logger_;
   std::filesystem::path log_dir_;
   std::filesystem::path log_file_;
@@ -73,7 +75,15 @@ class VulcanLogger {
       {DEBUG, spdlog::level::debug},    {TRACE, spdlog::level::trace}};
 };
 
-#define VULCAN_LOG(level, fmt, ...) \
-  vulcan::VulcanLogger::get_instance()->level(fmt, ##__VA_ARGS__)
+#define VULCAN_LOG(level, fmt, ...)                                    \
+  do {                                                                 \
+    if (vulcan::VulcanLogger::get_instance()->is_init()) {             \
+      vulcan::VulcanLogger::get_instance()->level(fmt, ##__VA_ARGS__); \
+    } else {                                                           \
+      char buf[vulcan::ONE_KILO];                                      \
+      snprintf(buf, sizeof(buf), fmt, ##__VA_ARGS__);                  \
+      std::cout << buf << std::endl;                                   \
+    }                                                                  \
+  } while (0);
 
 }  // namespace vulcan

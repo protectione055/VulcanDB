@@ -41,6 +41,7 @@ void VulcanLogger::init(const std::filesystem::path& log_dir,
     logger_ = std::make_unique<spdlog::logger>("vulcan_logger", sink_list);
     logger_->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%t] %v");
     logger_->flush_on(spdlog::level::trace);
+    is_init_ = true;
   } catch (const spdlog::spdlog_ex& ex) {
     std::cerr << "spdlog init failed: " << ex.what() << std::endl;
   } catch (const std::exception& ex) {
