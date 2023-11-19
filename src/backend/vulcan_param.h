@@ -32,7 +32,7 @@ class VulcanParam {
   void set_console_level(LOG_LEVEL console_level) {
     console_log_level_ = console_level;
   }
-
+  
   std::string get_process_name() const { return process_name_; }
   std::filesystem::path get_home() const { return home_; }
   std::filesystem::path get_data_dir() const { return data_dir_; }

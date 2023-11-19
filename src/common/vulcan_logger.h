@@ -43,6 +43,11 @@ class VulcanLogger {
   LOG_LEVEL get_log_level() const { return log_level_; }
 
   template <typename... Args>
+  void trace(const char* fmt, const Args&... args) {
+    logger_->trace(fmt, args...);
+  }
+
+  template <typename... Args>
   void debug(const char* fmt, const Args&... args) {
     logger_->debug(fmt, args...);
   }
@@ -62,6 +67,11 @@ class VulcanLogger {
     logger_->error(fmt, args...);
   }
 
+  template <typename... Args>
+  void panic(const char* fmt, const Args&... args) {
+    logger_->critical(fmt, args...);
+  }
+
  private:
   bool is_init_ = false;
   std::unique_ptr<spdlog::logger> logger_;
@@ -75,6 +85,12 @@ class VulcanLogger {
       {DEBUG, spdlog::level::debug},    {TRACE, spdlog::level::trace}};
 };
 
+/*
+ * VULCAN_LOG(level, fmt, ...)
+ * @param level: log level. e.g. trace, info, warn, error, debug, panic
+ * @param fmt: format string. e.g. "hello {}"
+ * @param ...: format string arguments. e.g. "world"
+ */
 #define VULCAN_LOG(level, fmt, ...)                                    \
   do {                                                                 \
     if (vulcan::VulcanLogger::get_instance()->is_init()) {             \

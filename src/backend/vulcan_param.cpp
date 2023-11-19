@@ -17,7 +17,7 @@ std::string process_name(const char* prog_name) {
   if (pos != std::string::npos) {
     process_name_ = process_name_.substr(pos + 1);
   }
-  return process_name_ + "-" + std::to_string(getpid());
+  return process_name_;
 }
 
 VulcanParam* VulcanParam::get_instance() {

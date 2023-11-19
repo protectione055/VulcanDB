@@ -4,15 +4,17 @@
 #include <functional>
 #include <iostream>
 
+#include "backend/pidfile.h"
+#include "backend/vulcan_param.h"
 #include "common/defs.h"
 #include "common/vulcan_logger.h"
-#include "backend/vulcan_param.h"
 
 vulcan::VulcanParam *vulcan_param = vulcan::VulcanParam::get_instance();
 
-void parse_parameter(int argc, char **argv);
-void usage();
+void init_parameter(int argc, char **argv);
+void print_help();
 void init_process(const vulcan::VulcanParam *config);
+void cleanup_process(const vulcan::VulcanParam *config);
 
 /*
  * Any vulcandb server process begins execution here.
@@ -20,15 +22,17 @@ void init_process(const vulcan::VulcanParam *config);
 int main(int argc, char **argv) {
   // TODO: 从文件和环境变量中读取配置
   // 优先级：命令行参数 > (环境变量) > 配置文件
-  parse_parameter(argc, argv);
+  init_parameter(argc, argv);
 
   init_process(vulcan_param);
+
+  cleanup_process(vulcan_param);
 
   return 0;
 }
 
 // 解析命令行参数
-void parse_parameter(int argc, char **argv) {
+void init_parameter(int argc, char **argv) {
   vulcan_param->default_init(argv[0]);
 
   // Process args
@@ -57,17 +61,17 @@ void parse_parameter(int argc, char **argv) {
         vulcan_param->set_unix_socket_path(optarg);
         break;
       case 'h':
-        usage();
+        print_help();
         break;
       default:
         std::cerr << "Unknown option" << std::endl;
-        usage();
+        print_help();
         return;
     }
   }
 }
 
-void usage() {
+void print_help() {
   std::cout << "Usage: vulcan_ctl [OPTION]..." << std::endl;
   std::cout << "  -c, --config=FILE        configuration file" << std::endl;
   std::cout << "  -p, --port=PORT          server port" << std::endl;
@@ -81,7 +85,10 @@ void usage() {
 // initialize vulcan_ctl process
 void init_process(const vulcan::VulcanParam *config) {
   try {
-    VULCAN_LOG(info, "initialing vulcan_ctl process...");
+    // create pid file
+    vulcan::writePidFile(config->get_process_name().c_str());
+
+    VULCAN_LOG(info, "Initialing vulcan_ctl process...");
     // Initialize runtime direcotries
     std::function<void(const char *, const std::filesystem::path &)>
         check_and_create_dir = [](const char *var_name,
@@ -97,13 +104,18 @@ void init_process(const vulcan::VulcanParam *config) {
 
     // Initialize vulcan_logger
     vulcan::VulcanLogger *vulcan_logger = vulcan::VulcanLogger::get_instance();
-    vulcan_logger->init(
-        vulcan_param->get_log_dir(), vulcan_param->get_process_name(),
-        config->get_log_level(), config->get_console_log_level());
-
-    VULCAN_LOG(info, "打个胶试试功能");
+    vulcan_logger->init(config->get_log_dir(),
+                        config->get_process_name() + std::to_string(getpid()),
+                        config->get_log_level(),
+                        config->get_console_log_level());
   } catch (const std::exception &e) {
     std::cerr << "init process failed: " << e.what() << std::endl;
     exit(1);
   }
+}
+
+void cleanup_process(const vulcan::VulcanParam *config) {
+  VULCAN_LOG(info, "Cleaning up vulcan_ctl process...");
+  // remove pid file
+  vulcan::removePidFile();
 }

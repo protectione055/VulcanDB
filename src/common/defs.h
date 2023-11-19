@@ -1,6 +1,8 @@
 // Copyright 2023 VulcanDB
 # pragma once
 
+#include <string.h>
+
 namespace vulcan {
 
 #define VULCAN_HOME "VULCAN_HOME"
@@ -11,5 +13,7 @@ namespace vulcan {
 constexpr unsigned int ONE_KILO = 1024;
 constexpr unsigned int ONE_MILLION = ONE_KILO * ONE_KILO;
 constexpr unsigned int ONE_GIGA = ONE_MILLION * ONE_KILO;
+
+#define SYS_OUTPUT_ERROR ",error:" << errno << ":" << strerror(errno)
 
 }  // namespace vulcan
