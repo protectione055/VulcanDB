@@ -2,22 +2,31 @@
 
 #pragma once
 
+#include <pthread.h>
 #include <unistd.h>
 
 #include <filesystem>
+#include <fstream>
+#include <map>
 #include <memory>
 #include <string>
 
+#include "common/defs.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/spdlog.h"
 
-// #ifdef NDEBUG
-// #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
-// #else
-// #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
-// #endif
-
 namespace vulcan {
+
+typedef enum {
+  PANIC = 0,
+  ERR = 1,
+  WARN = 2,
+  INFO = 3,
+  DEBUG = 4,
+  TRACE = 5,
+  LAST
+} LOG_LEVEL;
+
 class VulcanLogger {
  public:
   ~VulcanLogger() = default;
@@ -27,48 +36,44 @@ class VulcanLogger {
     return &instance;
   }
 
-  void init(const std::filesystem::path& log_dir, const std::string& log_name) {
-    try {
-      if (!std::filesystem::exists(log_dir)) {
-        std::filesystem::create_directories(log_dir);
-      }
+  void init(const std::filesystem::path& log_dir, const std::string& log_name,
+            LOG_LEVEL log_level = INFO, LOG_LEVEL console_level = WARN);
 
-      std::filesystem::path log_file_path = log_dir / (log_name + ".log");
-      logger_ = std::move(
-          spdlog::basic_logger_mt("vulcan_logger", log_file_path.string()));
-    } catch (const spdlog::spdlog_ex& ex) {
-      std::cout << "spdlog init failed: " << ex.what() << std::endl;
-    } catch (const std::exception& ex) {
-      std::cout << "VulcanLogger init failed: " << ex.what() << std::endl;
-    }
+  LOG_LEVEL get_log_level() const { return log_level_; }
+
+  template <typename... Args>
+  void debug(const char* fmt, const Args&... args) {
+    logger_->debug(fmt, args...);
   }
 
-    template <typename... Args>
-    void debug(const char* fmt, const Args&... args) {
-      logger_->debug(fmt, args...);
-    }
+  template <typename... Args>
+  void info(const char* fmt, const Args&... args) {
+    logger_->info(fmt, args...);
+  }
 
-    template <typename... Args>
-    void info(const char* fmt, const Args&... args) {
-      logger_->info(fmt, args...);
-    }
+  template <typename... Args>
+  void warn(const char* fmt, const Args&... args) {
+    logger_->warn(fmt, args...);
+  }
 
-    template <typename... Args>
-    void warn(const char* fmt, const Args&... args) {
-      logger_->warn(fmt, args...);
-    }
-
-    template <typename... Args>
-    void error(const char* fmt, const Args&... args) {
-      logger_->error(fmt, args...);
-    }
+  template <typename... Args>
+  void error(const char* fmt, const Args&... args) {
+    logger_->error(fmt, args...);
+  }
 
  private:
-  VulcanLogger() = default;
-  VulcanLogger(const VulcanLogger&) = delete;
-
-  std::shared_ptr<spdlog::logger> logger_;
+  std::unique_ptr<spdlog::logger> logger_;
   std::filesystem::path log_dir_;
+  std::filesystem::path log_file_;
+  LOG_LEVEL log_level_;
+  LOG_LEVEL console_level_;
+  std::map<LOG_LEVEL, spdlog::level::level_enum> log_level_map_ = {
+      {PANIC, spdlog::level::critical}, {ERR, spdlog::level::err},
+      {WARN, spdlog::level::warn},      {INFO, spdlog::level::info},
+      {DEBUG, spdlog::level::debug},    {TRACE, spdlog::level::trace}};
 };
+
+#define VULCAN_LOG(level, fmt, ...) \
+  vulcan::VulcanLogger::get_instance()->level(fmt, ##__VA_ARGS__)
 
 }  // namespace vulcan

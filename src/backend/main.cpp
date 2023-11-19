@@ -8,7 +8,6 @@
 #include "common/vulcan_logger.h"
 #include "backend/vulcan_param.h"
 
-vulcan::VulcanLogger *vulcan_logger = vulcan::VulcanLogger::get_instance();
 vulcan::VulcanParam *vulcan_param = vulcan::VulcanParam::get_instance();
 
 void parse_parameter(int argc, char **argv);
@@ -96,10 +95,14 @@ void init_process(const vulcan::VulcanParam *config) {
     check_and_create_dir(VULCAN_LOG_DIR, config->get_log_dir());
 
     // Initialize vulcan_logger
-    vulcan_logger->init(vulcan_param->get_log_dir(),
-                        vulcan_param->get_process_name());
+    vulcan::VulcanLogger *vulcan_logger = vulcan::VulcanLogger::get_instance();
+    vulcan_logger->init(
+        vulcan_param->get_log_dir(), vulcan_param->get_process_name(),
+        config->get_log_level(), config->get_console_log_level());
+
+    VULCAN_LOG(info, "打个胶试试功能");
   } catch (const std::exception &e) {
-    vulcan_logger->error("VulcanDB init failed. {}", e.what());
+    std::cerr << "init process failed: " << e.what() << std::endl;
     exit(1);
   }
 }

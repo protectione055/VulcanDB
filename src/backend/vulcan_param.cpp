@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <string>
 
+#include "common/vulcan_logger.h"
+
 namespace vulcan {
 
 std::string process_name(const char* prog_name) {
@@ -29,6 +31,9 @@ void VulcanParam::default_init(const char* prog_name) {
   data_dir_ = home_ / "data";
   log_dir_ = home_ / "log";
   conf_file_ = "/etc/vulcandb.conf";
+  unix_socket_path_ = "/tmp/vulcandb.sock";
+  log_level_ = LOG_LEVEL::INFO;
+  console_log_level_ = LOG_LEVEL::INFO;
 }
 
 }  // namespace vulcan
