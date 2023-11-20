@@ -4,3 +4,9 @@
 [submodule "third_party/wired_tiger"]
 	path = third_party/wired_tiger
 	url = git@github.com:wiredtiger/wiredtiger.git
+[submodule "third_party/libevent"]
+	path = third_party/libevent
+	url = git@github.com:libevent/libevent.git
+[submodule "third_party/fmt"]
+	path = third_party/fmt
+	url = git@github.com:fmtlib/fmt.git

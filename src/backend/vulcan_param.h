@@ -2,6 +2,7 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <string>
 
 #include "common/vulcan_logger.h"
@@ -32,7 +33,19 @@ class VulcanParam {
   void set_console_level(LOG_LEVEL console_level) {
     console_log_level_ = console_level;
   }
-  
+
+  void set_config(const std::string& key, const std::string& value) {
+    conf_map_[key] = value;
+  }
+
+  std::string get_config(const std::string& key) const {
+    auto it = conf_map_.find(key);
+    if (it != conf_map_.end()) {
+      return it->second;
+    }
+    return "";
+  }
+
   std::string get_process_name() const { return process_name_; }
   std::filesystem::path get_home() const { return home_; }
   std::filesystem::path get_data_dir() const { return data_dir_; }
@@ -43,6 +56,7 @@ class VulcanParam {
   }
   LOG_LEVEL get_log_level() const { return log_level_; }
   LOG_LEVEL get_console_log_level() const { return console_log_level_; }
+  int get_server_port() const { return server_port_; }
 
  private:
   std::string process_name_;
@@ -55,6 +69,7 @@ class VulcanParam {
   LOG_LEVEL console_log_level_;             // 控制台日志级别
   int server_port_;                         // 服务器端口
   //   bool is_demon_ = false;                   // 是否以守护进程方式运行
+  std::map<std::string, std::string> conf_map_;  // 扩展的配置项
 
   VulcanParam() = default;
   VulcanParam(const VulcanParam&) = delete;

@@ -1,6 +1,7 @@
 // Copyright 2023 VulcanDB
 #pragma once
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -9,6 +10,59 @@
 #include <string>
 
 namespace vulcan {
+
+#define SYS_OUTPUT_FILE_POS \
+  ", File:" << __FILE__ << ", line:" << __LINE__ << ",function:" << __FUNCTION__
+#define SYS_OUTPUT_ERROR ",error:" << errno << ":" << strerror(errno)
+
+/**
+ * Converts a string to a value of type T.
+ *
+ * @param str The string to convert.
+ * @param val The converted value will be stored in this variable.
+ * @param radix The radix to use for conversion (default is decimal).
+ * @return True if the conversion was successful, false otherwise.
+ */
+template <class T>
+bool str_to_val(const std::string &str, T &val,
+                std::ios_base &(*radix)(std::ios_base &) = std::dec) {
+  bool success = true;
+  std::istringstream is(str);
+  if (!(is >> radix >> val)) {
+    val = 0;
+    success = false;
+  }
+  return success;
+}
+
+/**
+ * @brief Checks if a string is blank.
+ *
+ * A string is considered blank if it is nullptr or contains only whitespace
+ * characters.
+ *
+ * @param s The string to check.
+ * @return True if the string is blank, false otherwise.
+ */
+bool is_blank(const char *s);
+
+/**
+ * @brief Replaces all occurrences of a substring in a string with a new
+ * substring.
+ *
+ * This function takes a source string, a substring to be replaced, and a new
+ * substring. It replaces all occurrences of the substring in the source string
+ * with the new substring. The modified string is then returned.
+ *
+ * @param resource_str The source string in which the replacement will be
+ * performed.
+ * @param sub_str The substring to be replaced.
+ * @param new_str The new substring that will replace the occurrences of the old
+ * substring.
+ * @return The modified string after the replacement.
+ */
+std::string subreplace(std::string resource_str, std::string sub_str,
+                       std::string new_str);
 
 // 创建并返回一个临时目录
 // @return 临时目录路径

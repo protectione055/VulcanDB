@@ -1,30 +1,51 @@
 // Copyright 2023 VulcanDB
 #include <getopt.h>
+#include <signal.h>
 
 #include <functional>
 #include <iostream>
 
 #include "backend/pidfile.h"
+#include "backend/server.h"
 #include "backend/vulcan_param.h"
 #include "common/defs.h"
 #include "common/vulcan_logger.h"
+#include "common/vulcan_os.h"
+#include "common/vulcan_utility.h"
 
-vulcan::VulcanParam *vulcan_param = vulcan::VulcanParam::get_instance();
+using namespace vulcan;
 
 void init_parameter(int argc, char **argv);
 void print_help();
 void init_process(const vulcan::VulcanParam *config);
 void cleanup_process(const vulcan::VulcanParam *config);
+void *quit_thread_func(void *_signum);
+void quit_signal_handle(int signum);
+vulcan::Server *init_server(
+    const vulcan::VulcanParam *config);
+
+// vulcan backend server
+vulcan::Server *g_server = nullptr;
+
+// vulcan process parameters
+// 运行时配置的全局访问点
+vulcan::VulcanParam *vulcan_param = vulcan::VulcanParam::get_instance();
 
 /*
  * Any vulcandb server process begins execution here.
  */
 int main(int argc, char **argv) {
-  // TODO: 从文件和环境变量中读取配置
-  // 优先级：命令行参数 > (环境变量) > 配置文件
+  // TODO(Ziming Zhang): 从文件和环境变量中读取配置
+  // 1. 从文件中读取配置
+  // 2. 从环境变量中读取配置
+  // 3. 从命令行参数中读取配置
   init_parameter(argc, argv);
 
   init_process(vulcan_param);
+
+  VULCAN_LOG(info, "VulcanDB server listening on port {}",
+             vulcan_param->get_server_port());
+  g_server->serve();
 
   cleanup_process(vulcan_param);
 
@@ -82,13 +103,51 @@ void print_help() {
   exit(0);
 }
 
+/**
+ * @brief Function to handle quitting the thread.
+ *
+ * This function is called when a signal is received to quit the thread. It
+ * takes the signal number as input and performs the necessary actions to
+ * shutdown the server.
+ *
+ * @param _signum The signal number.
+ * @return void* Returns a null pointer.
+ */
+void *quit_thread_func(void *_signum) {
+  intptr_t signum = (intptr_t)_signum;
+  VULCAN_LOG(info, "Receive signal: {}}", signum);
+  if (g_server) {
+    g_server->shutdown();
+  }
+  return nullptr;
+}
+
+/**
+ * @brief Handles the quit signal.
+ *
+ * This function is called when a quit signal is received. It creates a new
+ * thread to execute the quit_thread_func function with the given signum as an
+ * argument.
+ *
+ * @param signum The signal number.
+ */
+void quit_signal_handle(int signum) {
+  pthread_t tid;
+  pthread_create(&tid, nullptr, quit_thread_func,
+                 reinterpret_cast<void *>(signum));
+}
+
 // initialize vulcan_ctl process
 void init_process(const vulcan::VulcanParam *config) {
   try {
     // create pid file
     vulcan::writePidFile(config->get_process_name().c_str());
 
-    VULCAN_LOG(info, "Initialing vulcan_ctl process...");
+     // Set Singal handling Fucntion
+    setSignalHandler(quit_signal_handle);
+
+    printf("Initialing vulcan_ctl process...\n");
+
     // Initialize runtime direcotries
     std::function<void(const char *, const std::filesystem::path &)>
         check_and_create_dir = [](const char *var_name,
@@ -108,14 +167,40 @@ void init_process(const vulcan::VulcanParam *config) {
                         config->get_process_name() + std::to_string(getpid()),
                         config->get_log_level(),
                         config->get_console_log_level());
+
+    // Initialize backend server
+    g_server = init_server(config);
   } catch (const std::exception &e) {
     std::cerr << "init process failed: " << e.what() << std::endl;
     exit(1);
   }
 }
 
+vulcan::Server* init_server(const vulcan::VulcanParam *config) {
+  int64_t listen_addr = INADDR_ANY;
+  int64_t max_connection_num = MAX_CONNECTION_NUM_DEFAULT;
+  int port = config->get_server_port();
+
+  std::string conf_value = config->get_config(MAX_CONNECTION_NUM);
+  if (!conf_value.empty()) {
+    vulcan::str_to_val(conf_value, max_connection_num);
+  }
+
+  vulcan::ServerParam server_param;
+  server_param.listen_addr = listen_addr;
+  server_param.max_connection_num = max_connection_num;
+  server_param.port = port;
+
+  server_param.use_unix_socket = true;
+  server_param.unix_socket_path = config->get_unix_socket_path();
+
+  vulcan::Server *server = new vulcan::Server(server_param);
+  return server;
+}
+
 void cleanup_process(const vulcan::VulcanParam *config) {
   VULCAN_LOG(info, "Cleaning up vulcan_ctl process...");
   // remove pid file
   vulcan::removePidFile();
+  // TODO(Ziming Zhang): remove unix socket file
 }

@@ -31,9 +31,10 @@ void VulcanParam::default_init(const char* prog_name) {
   data_dir_ = home_ / "data";
   log_dir_ = home_ / "log";
   conf_file_ = "/etc/vulcandb.conf";
-  unix_socket_path_ = "/tmp/vulcandb.sock";
+  unix_socket_path_ = UNIX_SOCKET_PATH_DEFAULT;
   log_level_ = LOG_LEVEL::INFO;
   console_log_level_ = LOG_LEVEL::INFO;
+  server_port_ = 6688;
 }
 
 }  // namespace vulcan

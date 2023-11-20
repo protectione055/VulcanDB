@@ -10,6 +10,8 @@ include(GNUInstallDirs)
 enable_testing()
 
 include_directories(src)
+include_directories(third_party/)
+include_directories(third_party/**/include)
 
 ###############################################################
 #   设置构建选项
@@ -65,10 +67,20 @@ add_executable(vulcan_ctl ${VULCAN_CTL_SRC})
 target_link_libraries(vulcan_ctl vulcan_core)
 
 ###############################################################
+#   构建VULCAN_CLIENT
+###############################################################
+add_subdirectory(${SRC_DIR}/client)
+
+###############################################################
 #   构建第三方依赖
 ###############################################################
 
 add_subdirectory(third_party/yaml-cpp)
+add_subdirectory(third_party/libevent)
+add_subdirectory(third_party/fmt)
+
+target_link_libraries(vulcan_core event_pthreads event)
+target_link_libraries(vulcan_core fmt)
 
 find_package(Boost REQUIRED)
 if(NOT Boost_FOUND)

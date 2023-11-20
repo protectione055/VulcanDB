@@ -45,7 +45,6 @@ void replace_win_newlines_to_unix(std::string file, std::string new_file) {
     std::filesystem::remove(file);
     std::filesystem::copy(tmp_file, new_file);
     std::filesystem::remove(tmp_file);
-
   } catch (std::exception& e) {
     std::cout << e.what() << std::endl;
   }
@@ -59,6 +58,19 @@ std::string subreplace(std::string resource_str, std::string sub_str,
     dst_str.replace(pos, sub_str.length(), new_str);
   }
   return dst_str;
+}
+
+bool is_blank(const char* s) {
+  if (s == nullptr) {
+    return true;
+  }
+  while (*s != '\0') {
+    if (!isspace(*s)) {
+      return false;
+    }
+    s++;
+  }
+  return true;
 }
 
 }  // namespace vulcan

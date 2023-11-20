@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
@@ -73,6 +74,8 @@ class VulcanLogger {
   }
 
  private:
+  VulcanLogger() = default;
+
   bool is_init_ = false;
   std::unique_ptr<spdlog::logger> logger_;
   std::filesystem::path log_dir_;
@@ -96,9 +99,7 @@ class VulcanLogger {
     if (vulcan::VulcanLogger::get_instance()->is_init()) {             \
       vulcan::VulcanLogger::get_instance()->level(fmt, ##__VA_ARGS__); \
     } else {                                                           \
-      char buf[vulcan::ONE_KILO];                                      \
-      snprintf(buf, sizeof(buf), fmt, ##__VA_ARGS__);                  \
-      std::cout << buf << std::endl;                                   \
+      std::cerr << "vulcan_logger not initialized." << std::endl;      \
     }                                                                  \
   } while (0);
 
