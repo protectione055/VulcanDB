@@ -1,10 +1,10 @@
 // Copyright 2023 VulcanDB
 #pragma once
 
-#include <common/vulcan_logger.h>
-
 #include <memory>
 #include <string>
+
+#include "common/vulcan_logger.h"
 
 namespace vulcan {
 
@@ -40,26 +40,30 @@ class DataStoreParameters {
   virtual std::string get_datastore_type() const = 0;
 };
 
-// 底层存储引擎的抽象接口
-class DataStoreInterface {
+class DataStoreSession {
  public:
-  DataStoreInterface() = default;
-  explicit DataStoreInterface(std::shared_ptr<VulcanLogger> logger) {}
-  ~DataStoreInterface() = default;
-
-  // 打开一个存储系统实例
-  // @param 数据目录
-
-  virtual void open_datastore_instance(const std::string& data_home_dir) = 0;
-  // TODO: 完善接口
-  //   virtual void new_datastore_session() = 0;
+  DataStoreSession() = default;
+  ~DataStoreSession() = default;
 
   // 底层存储引擎访问接口
   virtual const char* get(const char* key) = 0;
   virtual void upsert_kv(const char* key, const char* value) = 0;
-  virtual void insert_kv(const char* key, const char* value) = 0;
+  virtual bool insert_kv(const char* key, const char* value) = 0;
   virtual void delete_kv(const char* key) = 0;
   // TODO: Scan接口
+};
+
+// 底层存储引擎的抽象接口
+class DataStoreInterface {
+ public:
+  DataStoreInterface() = default;
+  ~DataStoreInterface() = default;
+
+  // 打开一个存储系统实例
+  virtual int open_datastore_instance(void* datastore_config) = 0;
+  virtual int close_datastore_instance() = 0;
+
+  virtual std::shared_ptr<DataStoreSession> new_datastore_session() = 0;
 };
 
 }  // namespace vulcan

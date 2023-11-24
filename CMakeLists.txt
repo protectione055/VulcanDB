@@ -1,12 +1,19 @@
 cmake_minimum_required(VERSION 3.0.0)
-set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 project(VulcanDB VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+
 
 include(CPack)
 include(CTest)
 include(GNUInstallDirs)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+add_subdirectory(third_party/googletest EXCLUDE_FROM_ALL)
 enable_testing()
 
 include_directories(src)
@@ -70,6 +77,11 @@ target_link_libraries(vulcan_ctl vulcan_core)
 #   构建VULCAN_CLIENT
 ###############################################################
 add_subdirectory(${SRC_DIR}/client)
+
+###############################################################
+#   构建TESTS
+###############################################################
+add_subdirectory(tests)
 
 ###############################################################
 #   构建第三方依赖

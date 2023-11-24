@@ -202,5 +202,6 @@ void cleanup_process(const vulcan::VulcanParam *config) {
   VULCAN_LOG(info, "Cleaning up vulcan_ctl process...");
   // remove pid file
   vulcan::removePidFile();
-  // TODO(Ziming Zhang): remove unix socket file
+  // remove unix socket file
+  std::filesystem::remove(config->get_unix_socket_path());
 }
