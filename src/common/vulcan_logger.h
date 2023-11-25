@@ -14,6 +14,7 @@
 
 #include "common/defs.h"
 #include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
 namespace vulcan {
@@ -99,7 +100,7 @@ class VulcanLogger {
     if (vulcan::VulcanLogger::get_instance()->is_init()) {             \
       vulcan::VulcanLogger::get_instance()->level(fmt, ##__VA_ARGS__); \
     } else {                                                           \
-      std::cerr << "vulcan_logger not initialized." << std::endl;      \
+      spdlog::info(fmt, ##__VA_ARGS__);                               \
     }                                                                  \
   } while (0);
 

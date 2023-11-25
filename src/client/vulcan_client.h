@@ -58,6 +58,19 @@ class VulcanClient {
   char *readline_from_cmd(const char *prompt);
 
   /**
+   * @brief 接收并打印消息的函数
+   *
+   * 从给定的套接字接收消息(以\0结尾)并将其打印到标准输出。
+   *
+   * @param sockfd 套接字文件描述符
+   * @param send_buf 发送缓冲区
+   * @param buf_size 缓冲区大小
+   * @return int 如果成功接收并打印消息，则返回0；否则返回-1
+   */
+  int recv_and_print_msg(int sockfd, char *send_buf,
+                                       int buf_size);
+
+  /**
    * Checks if the given command is an exit command.
    * An exit command can be "exit", "bye", or "\\q".
    *
@@ -72,7 +85,7 @@ class VulcanClient {
 
  private:
   const char *prompt_str_ = "vulcandb > ";
-  char send_buf_[MAX_MEM_BUFFER_SIZE];
+  char send_buf_[MAX_MEM_BUFFER_SIZE];  // 客户端读缓冲区
   std::string unix_socket_path_ = UNIX_SOCKET_PATH_DEFAULT;
   std::string server_host_ = "127.0.0.1";
   int server_port_ = PORT_DEFAULT;

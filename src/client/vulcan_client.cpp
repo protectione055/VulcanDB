@@ -2,7 +2,7 @@
 
 #include "client/vulcan_client.h"
 
-#include <common/vulcan_utility.h>
+#include <alloca.h>
 #include <getopt.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -12,6 +12,9 @@
 #include <sys/un.h>
 
 #include <iostream>
+
+#include "common/io/io.h"
+#include "common/vulcan_utility.h"
 
 namespace vulcan {
 
@@ -53,57 +56,58 @@ void VulcanClient::init(int argc, char *argv[]) {
 }
 
 void VulcanClient::run() {
-  char *input_command = nullptr;
-  while ((input_command = readline_from_cmd(prompt_str_)) != nullptr) {
+  while (true) {
+    // 从标准输入读取用户输入的查询语句
+    char *input_command = readline_from_cmd(prompt_str_);
+    if (input_command == nullptr || is_exit_command(input_command)) {
+      break;
+    }
+
     if (is_blank(input_command)) {
       free(input_command);
       continue;
     }
 
-    if (is_exit_command(input_command)) {
-      free(input_command);
-      break;
-    }
-
     // 向数据库服务端发送输入的查询语句
-    int send_bytes = 0;
-    char send_buf[MAX_MEM_BUFFER_SIZE];
-    if ((send_bytes =
-             write(sockfd_, input_command, strlen(input_command) + 1)) == -1) {
-      fprintf(stderr, "send error: %d:%s \n", errno, strerror(errno));
+    if (writen(sockfd_, input_command, strlen(input_command) + 1) != 0) {
+      std::cerr << "send error: " << strerror(errno) << std::endl;
+      free(input_command);
       exit(1);
     }
     free(input_command);
-    memset(send_buf, 0, sizeof(send_buf));
 
-    // 从数据库服务端接收查询结果，以\0结尾
-    int len = 0;
-    while ((len = recv(sockfd_, send_buf, MAX_MEM_BUFFER_SIZE, 0)) > 0) {
-      bool msg_end = false;
-      for (int i = 0; i < len; i++) {
-        if (0 == send_buf[i]) {
-          msg_end = true;
-          break;
-        }
-        printf("%c", send_buf[i]);
-      }
-      if (msg_end) {
-        break;
-      }
-      memset(send_buf, 0, MAX_MEM_BUFFER_SIZE);
-    }
-
-    std::cout << std::endl;
-
-    if (len < 0) {
+    // 从数据库服务端接收并打印查询结果
+    int ret = recv_and_print_msg(sockfd_, send_buf_, MAX_MEM_BUFFER_SIZE);
+    if (ret < 0) {
       fprintf(stderr, "Connection was broken: %s\n", strerror(errno));
       break;
     }
-    if (0 == len) {
+    if (0 == ret) {
       printf("Connection has been closed\n");
       break;
     }
   }
+}
+
+int VulcanClient::recv_and_print_msg(int sockfd, char *send_buf, int buf_size) {
+  int len = 0;
+  memset(send_buf, 0, buf_size);
+  while ((len = recv(sockfd, send_buf, buf_size, 0)) > 0) {
+    bool msg_end = false;
+    for (int i = 0; i < len; i++) {
+      if ('\0' == send_buf[i]) {
+        msg_end = true;
+        break;
+      }
+      std::cout << send_buf[i];
+    }
+    if (msg_end) {
+      break;
+    }
+    memset(send_buf, 0, buf_size);
+  }
+  std::cout << std::endl;
+  return len < 0 ? -1 : 0;
 }
 
 void VulcanClient::close() {
