@@ -17,12 +17,17 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "backend/seda/seda_config.h"
+#include "backend/seda/seda_defs.h"
+#include "backend/seda/session_stage.h"
 #include "backend/session.h"
 #include "common/defs.h"
 #include "common/io/io.h"
 #include "common/vulcan_logger.h"
 
 namespace vulcan {
+
+Stage *Server::session_stage_ = nullptr;
 
 ServerParam::ServerParam() {
   listen_addr = INADDR_ANY;
@@ -44,7 +49,9 @@ Server::~Server() {
   }
 }
 
-void Server::init() {}
+void Server::init() {
+  session_stage_ = SedaConfig::get_instance()->get_stage(SESSION_STAGE_NAME);
+}
 
 int Server::set_non_block(int fd) {
   int flags = fcntl(fd, F_GETFL);

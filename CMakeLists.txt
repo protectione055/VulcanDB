@@ -67,11 +67,11 @@ add_library(vulcan_core SHARED ${VULCAN_CORE_SRC})
 add_subdirectory(${SRC_DIR}/experiments)
 
 ###############################################################
-#   构建VULCAN_CTL
+#   构建vulcan-server
 ###############################################################
-file(GLOB_RECURSE VULCAN_CTL_SRC ${SRC_DIR}/backend/*.cpp)
-add_executable(vulcan_ctl ${VULCAN_CTL_SRC})
-target_link_libraries(vulcan_ctl vulcan_core)
+file(GLOB_RECURSE vulcan-server_SRC ${SRC_DIR}/backend/*.cpp)
+add_executable(vulcan-server ${vulcan-server_SRC})
+target_link_libraries(vulcan-server vulcan_core)
 
 ###############################################################
 #   构建VULCAN_CLIENT
@@ -121,3 +121,13 @@ if(${STORAGE_ENGINE} STREQUAL "WiredTiger")
 	target_link_libraries(vulcan_core ${WIREDTIGER_LIB})
 	endif()
 endif()
+
+###############################################################
+#   安装
+###############################################################
+# install(TARGETS vulcan_core vulcan-server
+# 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+# 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+# 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+add_custom_command(TARGET vulcan-server POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:vulcan-server> ${CMAKE_SOURCE_DIR}/build/bin/)

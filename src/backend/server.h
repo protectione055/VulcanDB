@@ -9,6 +9,9 @@
 namespace vulcan {
 
 class Session;
+class SessionStage;
+class SedaConfig;
+class Stage;
 
 typedef struct _ConnectionContext {
   Session *session;
@@ -71,10 +74,9 @@ class Server {
   int server_socket_;
   struct event_base *event_base_;
   struct event *listen_ev_;
-
   ServerParam server_param_;
 
-  //   static common::Stage *session_stage_;
+  static Stage *session_stage_;
 };
 
 class Communicator {

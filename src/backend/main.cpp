@@ -9,11 +9,16 @@
 #include "backend/server.h"
 #include "backend/vulcan_param.h"
 #include "common/defs.h"
+#include "common/os.h"
+#include "common/string.h"
 #include "common/vulcan_logger.h"
-#include "common/vulcan_os.h"
 #include "common/vulcan_utility.h"
 
 using namespace vulcan;
+
+/*
+ * Function declarations
+ */
 
 void init_parameter(int argc, char **argv);
 void print_help();
@@ -23,12 +28,14 @@ void *quit_thread_func(void *_signum);
 void quit_signal_handle(int signum);
 vulcan::Server *init_server(
     const vulcan::VulcanParam *config);
+void prepare_init_seda();
 
-// vulcan backend server
+/*
+ * Global variables
+ */
+
 vulcan::Server *g_server = nullptr;
 
-// vulcan process parameters
-// 运行时配置的全局访问点
 vulcan::VulcanParam *vulcan_param = vulcan::VulcanParam::get_instance();
 
 /*
@@ -137,7 +144,9 @@ void quit_signal_handle(int signum) {
                  reinterpret_cast<void *>(signum));
 }
 
-// initialize vulcan_ctl process
+/*
+ * Initialize vulcan_ctl process
+ */
 void init_process(const vulcan::VulcanParam *config) {
   try {
     // create pid file
@@ -167,6 +176,8 @@ void init_process(const vulcan::VulcanParam *config) {
                         config->get_process_name() + std::to_string(getpid()),
                         config->get_log_level(),
                         config->get_console_log_level());
+
+    // TODO(Ziming Zhang): 初始化seda
 
     // Initialize backend server
     g_server = init_server(config);
@@ -204,4 +215,12 @@ void cleanup_process(const vulcan::VulcanParam *config) {
   vulcan::removePidFile();
   // remove unix socket file
   std::filesystem::remove(config->get_unix_socket_path());
+}
+
+// 注册stage的工厂函数
+void prepare_init_seda() {
+  //   static StageFactory session_stage_factory("SessionStage",
+  //                                             &SessionStage::make_stage);
+  //   static StageFactory resolve_stage_factory("ResolveStage",
+  //                                             &ResolveStage::make_stage);
 }

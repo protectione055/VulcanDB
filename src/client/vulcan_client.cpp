@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include "common/io/io.h"
+#include "common/string.h"
 #include "common/vulcan_utility.h"
 
 namespace vulcan {
@@ -82,7 +83,7 @@ void VulcanClient::run() {
       fprintf(stderr, "Connection was broken: %s\n", strerror(errno));
       break;
     }
-    if (0 == ret) {
+    if (ret == 1) {
       printf("Connection has been closed\n");
       break;
     }
