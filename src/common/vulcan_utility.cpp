@@ -1,5 +1,4 @@
 // Copyright 2023 VulcanDB
-
 #include "common/vulcan_utility.h"
 
 #include <fcntl.h>
@@ -58,19 +57,6 @@ std::string subreplace(std::string resource_str, std::string sub_str,
     dst_str.replace(pos, sub_str.length(), new_str);
   }
   return dst_str;
-}
-
-bool is_blank(const char* s) {
-  if (s == nullptr) {
-    return true;
-  }
-  while (*s != '\0') {
-    if (!isspace(*s)) {
-      return false;
-    }
-    s++;
-  }
-  return true;
 }
 
 }  // namespace vulcan

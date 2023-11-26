@@ -6,7 +6,7 @@
 #include <string>
 
 #include "common/vulcan_utility.h"
-#include "execution/ifc_spc_loader.h"
+#include "execution/ifc_spf_loader.h"
 #include "experiments/compression_benchmark/deflate_test_runner.h"
 #include "ifccompressor_test_runner.h"
 #include "yaml-cpp/yaml.h"
@@ -18,7 +18,7 @@ void run_ifccompressor_test();
 
 // 配置文件路径
 std::string g_config_file =
-    "/home/zzm/projects/ifc-compression-benchmark/configs/"
+    "/home/zzm/projects/ifc-compression-benchmark/etc/"
     "benchmark_config.yaml";
 YAML::Node g_config;
 // 工作目录

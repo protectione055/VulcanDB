@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+#include "common/io/resp_protocol.h"
+
 namespace vulcan {
 
 /**

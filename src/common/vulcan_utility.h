@@ -6,45 +6,19 @@
 #include <unistd.h>
 
 #include <filesystem>
+#include <iostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <vector>
 
 namespace vulcan {
-
-#define SYS_OUTPUT_FILE_POS \
-  ", File:" << __FILE__ << ", line:" << __LINE__ << ",function:" << __FUNCTION__
-#define SYS_OUTPUT_ERROR ",error:" << errno << ":" << strerror(errno)
-
 /**
- * Converts a string to a value of type T.
+ * Returns the number of available CPU cores.
  *
- * @param str The string to convert.
- * @param val The converted value will be stored in this variable.
- * @param radix The radix to use for conversion (default is decimal).
- * @return True if the conversion was successful, false otherwise.
+ * @return The number of CPU cores.
  */
-template <class T>
-bool str_to_val(const std::string &str, T &val,
-                std::ios_base &(*radix)(std::ios_base &) = std::dec) {
-  bool success = true;
-  std::istringstream is(str);
-  if (!(is >> radix >> val)) {
-    val = 0;
-    success = false;
-  }
-  return success;
-}
-
-/**
- * @brief Checks if a string is blank.
- *
- * A string is considered blank if it is nullptr or contains only whitespace
- * characters.
- *
- * @param s The string to check.
- * @return True if the string is blank, false otherwise.
- */
-bool is_blank(const char *s);
+inline uint32_t getCpuNum() { return std::thread::hardware_concurrency(); }
 
 /**
  * @brief Replaces all occurrences of a substring in a string with a new

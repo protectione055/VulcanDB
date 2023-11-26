@@ -1,7 +1,8 @@
 // Copyright 2023 VulcanDB
-
 #pragma once
 
+#include <assert.h>
+#include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
 
@@ -18,6 +19,9 @@
 #include "spdlog/spdlog.h"
 
 namespace vulcan {
+
+#define SYS_OUTPUT_FILE_POS \
+  ", File:" << __FILE__ << ", line:" << __LINE__ << ",function:" << __FUNCTION__
 
 typedef enum {
   PANIC = 0,
@@ -66,11 +70,13 @@ class VulcanLogger {
 
   template <typename... Args>
   void error(const char* fmt, const Args&... args) {
+    std::cerr << SYS_OUTPUT_FILE_POS;
     logger_->error(fmt, args...);
   }
 
   template <typename... Args>
   void panic(const char* fmt, const Args&... args) {
+    std::cerr << SYS_OUTPUT_FILE_POS;
     logger_->critical(fmt, args...);
   }
 
@@ -100,8 +106,21 @@ class VulcanLogger {
     if (vulcan::VulcanLogger::get_instance()->is_init()) {             \
       vulcan::VulcanLogger::get_instance()->level(fmt, ##__VA_ARGS__); \
     } else {                                                           \
-      spdlog::info(fmt, ##__VA_ARGS__);                               \
+      spdlog::info(fmt, ##__VA_ARGS__);                                \
     }                                                                  \
   } while (0);
+
+#ifndef ASSERT
+#define ASSERT(expression, description, ...)                 \
+  do {                                                       \
+    if (!(expression)) {                                     \
+      if (vulcan::VulcanLogger::get_instance()->is_init()) { \
+        VULCAN_LOG(panic, description, ##__VA_ARGS__);       \
+        VULCAN_LOG(panic, "\n");                             \
+      }                                                      \
+      assert(expression);                                    \
+    }                                                        \
+  } while (0)
+#endif  // ASSERT
 
 }  // namespace vulcan
