@@ -6,12 +6,66 @@
 #include <vector>
 
 #include "backend/seda/seda_config.h"
+#include "backend/seda/seda_defs.h"
+#include "backend/seda/session_stage.h"
 #include "backend/seda/stage.h"
 #include "backend/seda/thread_pool.h"
 #include "common/ini_parser.h"
 #include "common/string.h"
 
 namespace vulcan {
+
+/**
+ * @brief The Seda class represents a configuration for the SEDA (Staged
+ * Event-Driven Architecture) framework.
+ *
+ * SEDA is a software architecture pattern that divides an application into a
+ * set of stages, where each stage processes events asynchronously. This class
+ * provides a map-based configuration for SEDA, allowing users to retrieve
+ * configuration values for different sections.
+ */
+class Seda {
+ public:
+  Seda() = default;
+  ~Seda() = default;
+
+  /**
+   * @brief Retrieves the configuration values for a specific section.
+   *
+   * @param section The name of the section to retrieve configuration values
+   * for.
+   * @return A map containing the configuration values for the specified
+   * section. If the section does not exist, an empty map is returned.
+   */
+  std::map<std::string, std::string> get(const std::string &section) {
+    if (seda_.find(section) == seda_.end()) {
+      return std::map<std::string, std::string>();
+    }
+    return seda_[section];
+  }
+
+  std::string get(const std::string &key, const std::string &defaultValue,
+                  const std::string &section) {
+    if (seda_.find(section) == seda_.end()) {
+      return defaultValue;
+    }
+    return seda_[section][key];
+  }
+
+  static const char CFG_DELIMIT_TAG = ',';
+
+ private:
+  std::map<std::string, std::map<std::string, std::string>> seda_ = {
+      {SEDA_BASE_NAME,
+       {{"EventHistory", "false"},
+        {"MaxEventHistoryNum", "100"},
+        {THREAD_POOLS_NAME, "SQLThreads,IOThreads,DefaultThreads"},
+        {"STAGES", "SessionStage"}}},
+      {"SQLThreads", {{"count", "3"}}},
+      {"IOThreads", {{"count", "3"}}},
+      {DEFAULT_THREAD_POOL, {{COUNT, "3"}}},
+      {SESSION_STAGE_NAME, {{THREAD_POOL_ID, "SQLThreads"}}}};
+};
 
 /**
  *  A class to configure seda stages
@@ -37,37 +91,6 @@ class SedaConfig {
    * @post configuration is deleted
    */
   ~SedaConfig();
-
-  /**
-   * Set the file holding the configuration
-   * @pre  filename is a null-terminated string, or \c NULL
-   * @post config filename is initialized, config string is empty
-   */
-  void set_cfg_filename(const char *filename);
-
-  /**
-   * Parse config file or string
-   * parse the seda config file or string and build an in-memory
-   * representation of the config.  Also, update global properties object
-   * with global seda properties from the config.
-   *
-   * @post config file or string is parsed and global seda properties
-   *       are added to global properties object
-   * @returns SUCCESS if parsing succeeds
-   *          PARSEFAIL if parsing fails
-   */
-  status_t parse();
-
-  /**
-   * instantiate the parsed configuration
-   * Use the parsed configuration to instantiate the thread pools
-   * and stages_ specificed, but do not start it running.
-   *
-   * @pre  configuration has been successfully parsed
-   * @post upon SUCCESS, thread pools and stages_ are created,
-   *        ready to be started.
-   */
-  status_t instantiate_cfg();
 
   /**
    * start the parsed, instantiated configuration
@@ -173,7 +196,7 @@ class SedaConfig {
       thread_pools_;                       // stage_name -> threadpool
   std::map<std::string, Stage *> stages_;  // stage_name -> stage
   std::vector<std::string> stage_names_;
-  IniFile seda_cfg_;
+  Seda seda_cfg_;
 };
 
 inline std::map<std::string, Stage *>::iterator SedaConfig::begin() {

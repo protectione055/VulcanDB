@@ -43,43 +43,6 @@ SedaConfig::~SedaConfig() {
   instance_ = NULL;
 }
 
-// Set the file holding the configuration
-void SedaConfig::set_cfg_filename(const char *filename) {
-  cfg_str_.clear();
-  cfg_file_.clear();
-  if (filename != NULL) {
-    cfg_file_.assign(filename);
-  }
-  return;
-}
-
-// Parse config file or string
-SedaConfig::status_t SedaConfig::parse() {
-  // first parse the config
-  try {
-    // skip parse in this implementation
-    // all configuration will be put into one file
-    seda_cfg_.load(cfg_file_);
-  } catch (const std::exception &e) {
-    std::string err_msg(e.what());
-    VULCAN_LOG(error, "Seda config parse failed w/ error {}", err_msg.c_str());
-    return PARSEFAIL;
-  }
-  VULCAN_LOG(debug, "Seda config parse success\n");
-
-  return SUCCESS;
-}
-
-// instantiate the parsed SEDA configuration
-SedaConfig::status_t SedaConfig::instantiate_cfg() {
-  status_t stat = SUCCESS;
-
-  // instantiate the configuration
-  stat = instantiate();
-
-  return stat;
-}
-
 // start the configuration - puts the stages_ into action
 SedaConfig::status_t SedaConfig::start() {
   status_t stat = SUCCESS;
@@ -153,7 +116,6 @@ void SedaConfig::cleanup() {
 
 SedaConfig::status_t SedaConfig::init_thread_pool() {
   try {
-    // TODO(Ziming Zhang): 获取所有threadpool的名称
     std::map<std::string, std::string> base_section =
         seda_cfg_.get(SEDA_BASE_NAME);
     std::map<std::string, std::string>::iterator it;
@@ -170,7 +132,7 @@ SedaConfig::status_t SedaConfig::init_thread_pool() {
     std::string pool_names = it->second;
     std::vector<std::string> name_list;
     std::string split_tag;
-    split_tag.assign(1, IniFile::CFG_DELIMIT_TAG);
+    split_tag.assign(1, Seda::CFG_DELIMIT_TAG);
     split_string(pool_names, split_tag, name_list);
 
     int cpu_num = getCpuNum();
@@ -183,7 +145,7 @@ SedaConfig::status_t SedaConfig::init_thread_pool() {
       // get count number
       key = COUNT;
       std::string count_str =
-          get_properties()->get(key, default_cpu_num_str, thread_name);
+          seda_cfg_.get(key, default_cpu_num_str, thread_name);
 
       int thread_count = 1;
       str_to_val(count_str, thread_count);
@@ -233,8 +195,7 @@ SedaConfig::status_t SedaConfig::init_thread_pool() {
 std::string SedaConfig::get_thread_pool(std::string &stage_name) {
   std::string ret = DEFAULT_THREAD_POOL;
   // Get thread pool
-  std::map<std::string, std::string> stage_section =
-      get_properties()->get(stage_name);
+  std::map<std::string, std::string> stage_section = seda_cfg_.get(stage_name);
   std::map<std::string, std::string>::iterator itt;
   std::string thread_pool_id = THREAD_POOL_ID;
   itt = stage_section.find(thread_pool_id);
@@ -264,9 +225,9 @@ std::string SedaConfig::get_thread_pool(std::string &stage_name) {
 
 SedaConfig::status_t SedaConfig::init_stages() {
   try {
-    // TODO(Ziming Zhang): 获取所有stage的名称
+    // 获取所有stage的名称
     std::map<std::string, std::string> base_section =
-        get_properties()->get(SEDA_BASE_NAME);
+        seda_cfg_.get(SEDA_BASE_NAME);
     std::map<std::string, std::string>::iterator it;
     std::string key;
 
@@ -280,7 +241,7 @@ SedaConfig::status_t SedaConfig::init_stages() {
     }
 
     std::string split_tag;
-    split_tag.assign(1, IniFile::CFG_DELIMIT_TAG);
+    split_tag.assign(1, Seda::CFG_DELIMIT_TAG);
     split_string(it->second, split_tag, stage_names_);
 
     for (std::vector<std::string>::iterator it = stage_names_.begin();
@@ -329,7 +290,7 @@ SedaConfig::status_t SedaConfig::gen_next_stages() {
       Stage *stage = stages_[stage_name];
 
       std::map<std::string, std::string> stage_section =
-          get_properties()->get(stage_name);
+          seda_cfg_.get(stage_name);
       std::map<std::string, std::string>::iterator it;
       std::string next_stage_id = NEXT_STAGES;
       it = stage_section.find(next_stage_id);
@@ -341,7 +302,7 @@ SedaConfig::status_t SedaConfig::gen_next_stages() {
 
       std::vector<std::string> next_stage_name_list;
       std::string split_tag;
-      split_tag.assign(1, IniFile::CFG_DELIMIT_TAG);
+      split_tag.assign(1, Seda::CFG_DELIMIT_TAG);
       split_string(next_stage_names, split_tag, next_stage_name_list);
 
       for (std::vector<std::string>::iterator next_it =

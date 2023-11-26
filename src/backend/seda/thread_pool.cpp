@@ -232,7 +232,7 @@ void *Threadpool::run_thread(void *pool_ptr) {
 
   // this is not portable, but is easier to map to LWP
   int64_t threadid = gettid();
-  VULCAN_LOG(info, "threadid = %llx, threadname = {}\n", threadid,
+  VULCAN_LOG(info, "threadid = {}, threadname = {}\n", threadid,
              pool->get_name().c_str());
 
   pthread_setname_np(pthread_self(), pool->get_name().c_str());
@@ -286,8 +286,8 @@ void *Threadpool::run_thread(void *pool_ptr) {
     }
     run_stage->release_event();
   }
-  VULCAN_LOG(trace, "exit %p", pool_ptr);
-  VULCAN_LOG(info, "Begin to exit, threadid = %llx, threadname = {}", threadid,
+  VULCAN_LOG(trace, "exit {}", pool_ptr);
+  VULCAN_LOG(info, "Begin to exit, threadid = {}, threadname = {}", threadid,
              pool->get_name().c_str());
 
   // the dummy compiler need this
