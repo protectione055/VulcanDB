@@ -6,6 +6,9 @@
 #include <iostream>
 
 #include "backend/pidfile.h"
+#include "backend/seda/seda_config.h"
+#include "backend/seda/session_stage.h"
+#include "backend/seda/stage_factory.h"
 #include "backend/server.h"
 #include "backend/vulcan_param.h"
 #include "common/defs.h"
@@ -20,32 +23,26 @@ using namespace vulcan;
  * Function declarations
  */
 
-void init_parameter(int argc, char **argv);
 void print_help();
-void init_process(const vulcan::VulcanParam *config);
-void cleanup_process(const vulcan::VulcanParam *config);
+void init_parameter(int argc, char **argv);
+void init_process(vulcan::VulcanParam *config);
+void init_server(vulcan::VulcanParam *config);
+void init_seda();
+void cleanup_process(vulcan::VulcanParam *config);
 void *quit_thread_func(void *_signum);
 void quit_signal_handle(int signum);
-vulcan::Server *init_server(
-    const vulcan::VulcanParam *config);
-void prepare_init_seda();
 
 /*
  * Global variables
  */
 
 vulcan::Server *g_server = nullptr;
-
 vulcan::VulcanParam *vulcan_param = vulcan::VulcanParam::get_instance();
 
 /*
  * Any vulcandb server process begins execution here.
  */
 int main(int argc, char **argv) {
-  // TODO(Ziming Zhang): 从文件和环境变量中读取配置
-  // 1. 从文件中读取配置
-  // 2. 从环境变量中读取配置
-  // 3. 从命令行参数中读取配置
   init_parameter(argc, argv);
 
   init_process(vulcan_param);
@@ -61,8 +58,6 @@ int main(int argc, char **argv) {
 
 // 解析命令行参数
 void init_parameter(int argc, char **argv) {
-  vulcan_param->default_init(argv[0]);
-
   // Process args
   int opt;
   int option_index = 0;
@@ -76,17 +71,30 @@ void init_parameter(int argc, char **argv) {
       {"help", no_argument, NULL, 'h'},
       {NULL, 0, NULL, 0},
   };
+
+  bool conf_file_loaded = false;
+  while ((opt = getopt_long(argc, argv, "c:psdlh", long_options,
+                            &option_index)) != -1 &&
+         !conf_file_loaded) {
+    switch (opt) {
+      case 'c':
+        vulcan_param->set_conf_file(optarg);
+        conf_file_loaded = true;
+      default:
+        break;
+    }
+  }
+  vulcan_param->load_conf_file();
   while ((opt = getopt_long(argc, argv, "c:psdlh", long_options,
                             &option_index)) != -1) {
     switch (opt) {
       case 'c':
-        vulcan_param->set_conf_file(optarg);
         break;
       case 'p':
-        vulcan_param->set_server_port(atoi(optarg));
+        vulcan_param->set(VULCAN_PORT, optarg);
         break;
       case 's':
-        vulcan_param->set_unix_socket_path(optarg);
+        vulcan_param->set(VULCAN_UNIX_SOCKET_PATH, optarg);
         break;
       case 'h':
         print_help();
@@ -97,17 +105,8 @@ void init_parameter(int argc, char **argv) {
         return;
     }
   }
-}
 
-void print_help() {
-  std::cout << "Usage: vulcan_ctl [OPTION]..." << std::endl;
-  std::cout << "  -c, --config=FILE        configuration file" << std::endl;
-  std::cout << "  -p, --port=PORT          server port" << std::endl;
-  std::cout << "  -s, --socket=PATH        unix socket path" << std::endl;
-  std::cout << "  -d, --data_dir=PATH      data directory" << std::endl;
-  std::cout << "  -l, --log_dir=PATH       log directory" << std::endl;
-  std::cout << "  -h, --help               show this help" << std::endl;
-  exit(0);
+  vulcan_param->init(argv[0]);
 }
 
 /**
@@ -147,7 +146,7 @@ void quit_signal_handle(int signum) {
 /*
  * Initialize vulcan_ctl process
  */
-void init_process(const vulcan::VulcanParam *config) {
+void init_process(vulcan::VulcanParam *config) {
   try {
     // create pid file
     vulcan::writePidFile(config->get_process_name().c_str());
@@ -157,42 +156,30 @@ void init_process(const vulcan::VulcanParam *config) {
 
     printf("Initialing vulcan_ctl process...\n");
 
-    // Initialize runtime direcotries
-    std::function<void(const char *, const std::filesystem::path &)>
-        check_and_create_dir = [](const char *var_name,
-                                  const std::filesystem::path &path) {
-          std::printf("%s=%s\n", var_name, path.string().c_str());
-          if (!std::filesystem::exists(path)) {
-            std::filesystem::create_directory(path);
-          }
-        };
-    check_and_create_dir(VULCAN_HOME, config->get_home());
-    check_and_create_dir(VULCAN_DATA_DIR, config->get_data_dir());
-    check_and_create_dir(VULCAN_LOG_DIR, config->get_log_dir());
-
     // Initialize vulcan_logger
     vulcan::VulcanLogger *vulcan_logger = vulcan::VulcanLogger::get_instance();
-    vulcan_logger->init(config->get_log_dir(),
+    vulcan_logger->init(config->get(VULCAN_LOG_DIR),
                         config->get_process_name() + std::to_string(getpid()),
                         config->get_log_level(),
                         config->get_console_log_level());
 
-    // TODO(Ziming Zhang): 初始化seda
+    // Initialize SEDA
+    init_seda();
 
     // Initialize backend server
-    g_server = init_server(config);
+    init_server(config);
   } catch (const std::exception &e) {
     std::cerr << "init process failed: " << e.what() << std::endl;
     exit(1);
   }
 }
 
-vulcan::Server* init_server(const vulcan::VulcanParam *config) {
+void init_server(vulcan::VulcanParam *config) {
   int64_t listen_addr = INADDR_ANY;
-  int64_t max_connection_num = MAX_CONNECTION_NUM_DEFAULT;
   int port = config->get_server_port();
 
-  std::string conf_value = config->get_config(MAX_CONNECTION_NUM);
+  int64_t max_connection_num;
+  std::string conf_value = config->get(MAX_CONNECTION_NUM);
   if (!conf_value.empty()) {
     vulcan::str_to_val(conf_value, max_connection_num);
   }
@@ -201,26 +188,44 @@ vulcan::Server* init_server(const vulcan::VulcanParam *config) {
   server_param.listen_addr = listen_addr;
   server_param.max_connection_num = max_connection_num;
   server_param.port = port;
-
   server_param.use_unix_socket = true;
-  server_param.unix_socket_path = config->get_unix_socket_path();
+  server_param.unix_socket_path = config->get(VULCAN_UNIX_SOCKET_PATH);
 
   vulcan::Server *server = new vulcan::Server(server_param);
-  return server;
+  server->init();
+  g_server = server;
 }
 
-void cleanup_process(const vulcan::VulcanParam *config) {
+void cleanup_process(vulcan::VulcanParam *config) {
   VULCAN_LOG(info, "Cleaning up vulcan_ctl process...");
   // remove pid file
   vulcan::removePidFile();
   // remove unix socket file
-  std::filesystem::remove(config->get_unix_socket_path());
+  std::filesystem::remove(config->get(VULCAN_UNIX_SOCKET_PATH));
 }
 
 // 注册stage的工厂函数
-void prepare_init_seda() {
-  //   static StageFactory session_stage_factory("SessionStage",
-  //                                             &SessionStage::make_stage);
+void init_seda() {
+  static StageFactory session_stage_factory("SessionStage",
+                                            &SessionStage::make_stage);
   //   static StageFactory resolve_stage_factory("ResolveStage",
-  //                                             &ResolveStage::make_stage);
+  // &ResolveStage::make_stage);
+
+  SedaConfig *seda = SedaConfig::get_instance();
+  SedaConfig::status_t status = seda->init();
+  if (status != SedaConfig::SUCCESS) {
+    VULCAN_LOG(error, "SedaConfig init failed");
+    exit(1);
+  }
+}
+
+void print_help() {
+  std::cout << "Usage: vulcan_ctl [OPTION]..." << std::endl;
+  std::cout << "  -c, --config=FILE        configuration file" << std::endl;
+  std::cout << "  -p, --port=PORT          server port" << std::endl;
+  std::cout << "  -s, --socket=PATH        unix socket path" << std::endl;
+  std::cout << "  -d, --data_dir=PATH      data directory" << std::endl;
+  std::cout << "  -l, --log_dir=PATH       log directory" << std::endl;
+  std::cout << "  -h, --help               show this help" << std::endl;
+  exit(0);
 }

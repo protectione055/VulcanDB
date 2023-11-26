@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <string>
 
+#include "common/ini_parser.h"
+#include "common/os.h"
 #include "common/vulcan_logger.h"
 
 namespace vulcan {
@@ -20,21 +22,51 @@ std::string process_name(const char* prog_name) {
   return process_name_;
 }
 
+VulcanParam::VulcanParam() {}
+
+void VulcanParam::load_conf_file() {
+  IniFile ini_file;
+  if (ini_file.load(conf_file_) != 0) {
+    VULCAN_LOG(warn, "Failed to load config file: {}", conf_file_);
+  } else {
+    // load settings from config file, if any
+    for (auto& entry : default_conf_map_) {
+      conf_map_[entry.first] =
+          ini_file.get(entry.first, entry.second, BASE_SECTION_NAME);
+    }
+  }
+}
+
 VulcanParam* VulcanParam::get_instance() {
   static VulcanParam instance;
   return &instance;
 }
 
-void VulcanParam::default_init(const char* prog_name) {
+void VulcanParam::check_and_create_dir(const char* var_name,
+                                       const std::filesystem::path& path) {
+  try {
+    std::printf("%s=%s\n", var_name, path.string().c_str());
+
+    std::filesystem::path definite_path = get_definite_path(path);
+    set(var_name, definite_path.string());
+
+    if (!std::filesystem::exists(definite_path)) {
+      std::filesystem::create_directory(definite_path);
+    }
+  } catch (std::exception& e) {
+    VULCAN_LOG(error, "Failed to create directory {}: {}", path.string(),
+               e.what());
+    exit(1);
+  }
+}
+
+void VulcanParam::init(const char* prog_name) {
   process_name_ = process_name(prog_name);
-  home_ = std::filesystem::path(getenv("HOME")) / ".vulcandb";
-  data_dir_ = home_ / "data";
-  log_dir_ = home_ / "log";
-  conf_file_ = "/etc/vulcandb.conf";
-  unix_socket_path_ = UNIX_SOCKET_PATH_DEFAULT;
-  log_level_ = LOG_LEVEL::INFO;
-  console_log_level_ = LOG_LEVEL::INFO;
-  server_port_ = 6688;
+
+  // Initialize runtime direcotries
+  check_and_create_dir(VULCAN_HOME, get(VULCAN_HOME));
+  check_and_create_dir(VULCAN_DATA_DIR, get(VULCAN_DATA_DIR));
+  check_and_create_dir(VULCAN_LOG_DIR, get(VULCAN_LOG_DIR));
 }
 
 }  // namespace vulcan

@@ -88,7 +88,7 @@ class VulcanClient {
   char send_buf_[MAX_MEM_BUFFER_SIZE];  // 客户端读缓冲区
   std::string unix_socket_path_ = UNIX_SOCKET_PATH_DEFAULT;
   std::string server_host_ = "127.0.0.1";
-  int server_port_ = PORT_DEFAULT;
+  int server_port_ = std::stoi(PORT_DEFAULT);
   int sockfd_ = -1;
 };
 

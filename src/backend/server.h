@@ -5,6 +5,7 @@
 
 #include "common/defs.h"
 #include "libevent/include/event.h"
+#include "backend/session.h"
 
 namespace vulcan {
 
@@ -13,14 +14,6 @@ class SessionStage;
 class SedaConfig;
 class Stage;
 
-typedef struct _ConnectionContext {
-  Session *session;
-  int fd;
-  struct event read_event;
-  pthread_mutex_t mutex;
-  char addr[24];
-  char buf[SOCKET_BUFFER_SIZE];
-} ConnectionContext;
 
 class ServerParam {
  public:

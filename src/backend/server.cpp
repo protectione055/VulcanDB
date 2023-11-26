@@ -19,6 +19,7 @@
 
 #include "backend/seda/seda_config.h"
 #include "backend/seda/seda_defs.h"
+#include "backend/seda/session_event.h"
 #include "backend/seda/session_stage.h"
 #include "backend/session.h"
 #include "common/defs.h"
@@ -30,9 +31,9 @@ namespace vulcan {
 Stage *Server::session_stage_ = nullptr;
 
 ServerParam::ServerParam() {
-  listen_addr = INADDR_ANY;
-  max_connection_num = MAX_CONNECTION_NUM_DEFAULT;
-  port = PORT_DEFAULT;
+  listen_addr;
+  max_connection_num;
+  port;
 }
 
 Server::Server(ServerParam input_server_param)
@@ -139,12 +140,11 @@ void Server::recv(int fd, int16_t ev, void *arg) {
   }
 
   VULCAN_LOG(info, "receive command(size={}): {}", data_len, client->buf);
-  //   SessionEvent *sev = new SessionEvent(client);
-  //   session_stage_->add_event(sev);
-  // TODO(Ziming Zhang): 接收到的数据交给下一个阶段处理
+  SessionEvent *sev = new SessionEvent(client);
+  session_stage_->add_event(sev);
+  //   const char *ack = "ack";
+  //   send(client, ack, strlen(ack) + 1);
   VULCAN_LOG(info, "Server::recv 执行成功");
-  const char *ack = "ack";
-  send(client, ack, strlen(ack) + 1);
 }
 
 // 这个函数仅负责发送数据，至于是否是一个完整的消息，由调用者控制
