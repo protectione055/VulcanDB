@@ -87,9 +87,9 @@ add_subdirectory(tests)
 #   构建第三方依赖
 ###############################################################
 
-add_subdirectory(third_party/yaml-cpp)
-add_subdirectory(third_party/libevent)
-add_subdirectory(third_party/fmt)
+add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/libevent EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/fmt EXCLUDE_FROM_ALL)
 
 target_link_libraries(vulcan_core event_pthreads event)
 target_link_libraries(vulcan_core fmt)

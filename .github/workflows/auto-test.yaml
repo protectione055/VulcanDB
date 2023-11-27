@@ -1,0 +1,21 @@
+
+name: auto-test
+on:
+  push:
+    branches: ["main"]
+jobs:
+  # Test on Ubuntu
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake zlib1g-dev libboost-all-dev libxml2-dev google-perftools libspdlog-dev
+      - name: Run tests
+        run: |
+          mkdir build && cd build && cmake ..
+          ctest -R "vulcan-test.*"
