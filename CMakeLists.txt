@@ -7,17 +7,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
-
-include(CPack)
-include(CTest)
-include(GNUInstallDirs)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-add_subdirectory(third_party/googletest EXCLUDE_FROM_ALL)
-enable_testing()
-
 include_directories(src)
 include_directories(third_party/)
-include_directories(third_party/**/include)
 
 ###############################################################
 #   设置构建选项
@@ -27,6 +18,7 @@ if(NOT IS_ABSOLUTE ${INCLUDEDIR})
 endif()
 message(STATUS "INCLUDEDIR: ${INCLUDEDIR}")
 
+option(BUILD_TESTING "Build tests" ON)
 set(STORAGE_ENGINE "WiredTiger" CACHE STRING "The storage engine to use")
 
 
@@ -38,6 +30,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")
+
 
 
 
@@ -80,18 +73,35 @@ add_subdirectory(${SRC_DIR}/client)
 ###############################################################
 #   构建TESTS
 ###############################################################
+if(BUILD_TESTING)
+message("Build tests")
+include(CPack)
+include(CTest)
+include(GNUInstallDirs)
+enable_testing()
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(tests)
+else()
+message("Not build tests")
+endif()
 
 ###############################################################
 #   构建第三方依赖
 ###############################################################
 
 add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/libevent EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/fmt EXCLUDE_FROM_ALL)
 
+add_subdirectory(third_party/libevent EXCLUDE_FROM_ALL)
 target_link_libraries(vulcan_core event_pthreads event)
-target_link_libraries(vulcan_core fmt)
+
+find_package(fmt REQUIRED)
+if(fmt_FOUND)
+	target_link_libraries(vulcan_core fmt::fmt)
+else()
+	message("Not found fmt package, using third_party fmt")
+	add_subdirectory(third_party/fmt EXCLUDE_FROM_ALL)
+	target_link_libraries(vulcan_core fmt)
+endif()
 
 find_package(Boost REQUIRED)
 if(NOT Boost_FOUND)

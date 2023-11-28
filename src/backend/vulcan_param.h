@@ -8,7 +8,7 @@
 
 #include "common/defs.h"
 #include "common/vulcan_logger.h"
-#
+
 
 namespace vulcan {
 

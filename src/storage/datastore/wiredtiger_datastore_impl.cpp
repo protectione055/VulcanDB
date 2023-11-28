@@ -29,9 +29,9 @@ WiredTigerSession::WiredTigerSession(WT_CONNECTION* const conn,
   CheckOp(session_->create(session_, table_name_.c_str(),
                            "key_format=S,value_format=S"),
           "session_->create");
-  CheckOp(
-      session_->open_cursor(session_, "table:kv", nullptr, nullptr, &cursor_),
-      "session_->open_cursor");
+  CheckOp(session_->open_cursor(session_, table_name_.c_str(), nullptr, nullptr,
+                                &cursor_),
+          "session_->open_cursor");
 }
 
 /**

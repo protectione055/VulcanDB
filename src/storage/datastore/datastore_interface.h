@@ -57,13 +57,23 @@ class DataStoreSession {
 class DataStoreInterface {
  public:
   DataStoreInterface() = default;
-  ~DataStoreInterface() = default;
+  virtual ~DataStoreInterface() = default;
 
   // 打开一个存储系统实例
   virtual int open_datastore_instance(void* datastore_config) = 0;
   virtual int close_datastore_instance() = 0;
 
   virtual std::shared_ptr<DataStoreSession> new_datastore_session() = 0;
+};
+
+class DataStoreFactory {
+ public:
+  DataStoreFactory() = default;
+  ~DataStoreFactory() = default;
+
+  // 创建一个存储引擎实例
+  virtual std::shared_ptr<DataStoreInterface> create_datastore_instance(
+      const DataStoreParameters& datastore_parameters) = 0;
 };
 
 }  // namespace vulcan

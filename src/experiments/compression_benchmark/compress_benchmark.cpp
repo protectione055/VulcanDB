@@ -6,7 +6,6 @@
 #include <string>
 
 #include "common/vulcan_utility.h"
-#include "execution/ifc_spf_loader.h"
 #include "experiments/compression_benchmark/deflate_test_runner.h"
 #include "ifccompressor_test_runner.h"
 #include "yaml-cpp/yaml.h"
