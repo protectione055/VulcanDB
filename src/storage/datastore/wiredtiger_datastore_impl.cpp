@@ -50,8 +50,7 @@ WiredTigerSession::WiredTigerSession(WT_CONNECTION* const conn,
 std::shared_ptr<DataStoreSession> WiredTigerDataStore::new_datastore_session() {
   WT_SESSION* session;
   if (conn_ == nullptr) {
-    VULCAN_LOG(error,
-               "WiredTigerDataStore::new_datastore_session: conn_ is null");
+    LOG(error, "WiredTigerDataStore::new_datastore_session: conn_ is null");
     throw std::runtime_error(
         "WiredTigerDataStore::new_datastore_session: conn_ is null");
   }

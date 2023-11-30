@@ -47,8 +47,8 @@ class WiredTigerSession : public DataStoreSession {
 
   void CheckOp(const int ret, const char* funcname) {
     if (ret != 0) {
-      VULCAN_LOG(error, "WiredTigerSession::CheckOp: {} failed. {}", funcname,
-                 strerror(ret));
+      LOG(error, "WiredTigerSession::CheckOp: {} failed. {}", funcname,
+          strerror(ret));
       exit(1);
     }
   }
@@ -74,7 +74,7 @@ class WiredTigerDataStore : public DataStoreInterface {
   // TODO(Ziming Zhang): remove this
   void CheckOp(const int ret, const char* funcname) {
     if (ret != 0) {
-      VULCAN_LOG(error, "WiredTigerDataStore::CheckOp: {} failed", funcname);
+      LOG(error, "WiredTigerDataStore::CheckOp: {} failed", funcname);
     }
   }
 };

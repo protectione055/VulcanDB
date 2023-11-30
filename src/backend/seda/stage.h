@@ -209,8 +209,7 @@ class Stage {
    * stages support event timeout detection.
    */
   virtual void timeout_event(StageEvent *event, CallbackContext *context) {
-    VULCAN_LOG(info, "get a timed out evnet in {} timeout_event\n",
-               stage_name_);
+    LOG(info, "get a timed out evnet in {} timeout_event\n", stage_name_);
     this->callback_event(event, context);
   }
 

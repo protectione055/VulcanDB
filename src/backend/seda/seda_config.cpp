@@ -108,7 +108,7 @@ void SedaConfig::cleanup() {
       iter++;
     }
   }
-  VULCAN_LOG(trace, "stages_ disconnected\n");
+  LOG(trace, "stages_ disconnected\n");
 
   // now delete all stages_ and thread_pools_
   clear_config();
@@ -125,7 +125,7 @@ SedaConfig::status_t SedaConfig::init_thread_pool() {
     key = THREAD_POOLS_NAME;
     it = base_section.find(key);
     if (it == base_section.end()) {
-      VULCAN_LOG(error, "Configuration hasn't set {}", key.c_str());
+      LOG(error, "Configuration hasn't set {}", key.c_str());
       return INITFAIL;
     }
 
@@ -150,41 +150,40 @@ SedaConfig::status_t SedaConfig::init_thread_pool() {
       int thread_count = 1;
       str_to_val(count_str, thread_count);
       if (thread_count < 1) {
-        VULCAN_LOG(info,
-                   "Thread number of  {} is {}, it is same as cpu's cores.",
-                   thread_name.c_str(), cpu_num);
+        LOG(info, "Thread number of  {} is {}, it is same as cpu's cores.",
+            thread_name.c_str(), cpu_num);
         thread_count = cpu_num;
       }
       const int max_thread_count = 1000000;
       if (thread_count >= max_thread_count) {
-        VULCAN_LOG(error, "Thread number is too big: {}(max:{})", thread_count,
-                   max_thread_count);
+        LOG(error, "Thread number is too big: {}(max:{})", thread_count,
+            max_thread_count);
         return INITFAIL;
       }
 
       Threadpool *thread_pool = new Threadpool(thread_count, thread_name);
       if (thread_pool == NULL) {
-        VULCAN_LOG(error, "Failed to new {} threadpool\n", thread_name.c_str());
+        LOG(error, "Failed to new {} threadpool\n", thread_name.c_str());
         return INITFAIL;
       }
       thread_pools_[thread_name] = thread_pool;
     }
 
     if (thread_pools_.find(DEFAULT_THREAD_POOL) == thread_pools_.end()) {
-      VULCAN_LOG(error, "There is no default thread pool {}, please add it.",
-                 DEFAULT_THREAD_POOL);
+      LOG(error, "There is no default thread pool {}, please add it.",
+          DEFAULT_THREAD_POOL);
       return INITFAIL;
     }
 
   } catch (std::exception &e) {
-    VULCAN_LOG(error, "Failed to init thread_pools_:{}\n", e.what());
+    LOG(error, "Failed to init thread_pools_:{}\n", e.what());
     clear_config();
     return INITFAIL;
   }
 
   int pools = thread_pools_.size();
   if (pools < 1) {
-    VULCAN_LOG(error, "Invalid number of thread_pools_:{}", pools);
+    LOG(error, "Invalid number of thread_pools_:{}", pools);
     clear_config();
     return INITFAIL;
   }
@@ -200,24 +199,23 @@ std::string SedaConfig::get_thread_pool(std::string &stage_name) {
   std::string thread_pool_id = THREAD_POOL_ID;
   itt = stage_section.find(thread_pool_id);
   if (itt == stage_section.end()) {
-    VULCAN_LOG(info, "Not set thread_pool_id for {}, use default threadpool {}",
-               stage_name.c_str(), DEFAULT_THREAD_POOL);
+    LOG(info, "Not set thread_pool_id for {}, use default threadpool {}",
+        stage_name.c_str(), DEFAULT_THREAD_POOL);
     return ret;
   }
 
   std::string thread_name = itt->second;
   if (thread_name.empty()) {
-    VULCAN_LOG(error,
-               "Failed to set {} of the {}, use the default threadpool {}",
-               thread_pool_id.c_str(), stage_name.c_str(), DEFAULT_THREAD_POOL);
+    LOG(error, "Failed to set {} of the {}, use the default threadpool {}",
+        thread_pool_id.c_str(), stage_name.c_str(), DEFAULT_THREAD_POOL);
     return ret;
   }
 
   if (thread_pools_.find(thread_name) == thread_pools_.end()) {
-    VULCAN_LOG(error,
-               "The stage {}'s threadpool {} is invalid, use the default "
-               "threadpool {}",
-               stage_name.c_str(), thread_name.c_str(), DEFAULT_THREAD_POOL);
+    LOG(error,
+        "The stage {}'s threadpool {} is invalid, use the default "
+        "threadpool {}",
+        stage_name.c_str(), thread_name.c_str(), DEFAULT_THREAD_POOL);
     return ret;
   }
   return thread_name;
@@ -235,7 +233,7 @@ SedaConfig::status_t SedaConfig::init_stages() {
     key = STAGES;
     it = base_section.find(key);
     if (it == base_section.end()) {
-      VULCAN_LOG(error, "Hasn't set stages name in {}", key.c_str());
+      LOG(error, "Hasn't set stages name in {}", key.c_str());
       clear_config();
       return INITFAIL;
     }
@@ -253,28 +251,26 @@ SedaConfig::status_t SedaConfig::init_stages() {
 
       Stage *stage = StageFactory::make_instance(stage_name);
       if (stage == NULL) {
-        VULCAN_LOG(error, "Failed to make instance of stage {}",
-                   stage_name.c_str());
+        LOG(error, "Failed to make instance of stage {}", stage_name.c_str());
         clear_config();
         return INITFAIL;
       }
       stages_[stage_name] = stage;
       stage->set_pool(t);
 
-      VULCAN_LOG(info, "Stage {} use threadpool {}.", stage_name.c_str(),
-                 thread_name.c_str());
+      LOG(info, "Stage {} use threadpool {}.", stage_name.c_str(),
+          thread_name.c_str());
     }  // end for stage
 
   } catch (std::exception &e) {
-    VULCAN_LOG(error,
-               "Failed to parse stages information, please check, err:{}",
-               e.what());
+    LOG(error, "Failed to parse stages information, please check, err:{}",
+        e.what());
     clear_config();
     return INITFAIL;
   }
 
   if (stages_.size() < 1) {
-    VULCAN_LOG(error, "Invalid number of stages_: %lu\n", stages_.size());
+    LOG(error, "Invalid number of stages_: %lu\n", stages_.size());
     clear_config();
     return INITFAIL;
   }
@@ -315,7 +311,7 @@ SedaConfig::status_t SedaConfig::gen_next_stages() {
 
     }  // end for stage
   } catch (std::exception &e) {
-    VULCAN_LOG(error, "Failed to get next stages");
+    LOG(error, "Failed to get next stages");
     clear_config();
     return INITFAIL;
   }
@@ -326,19 +322,19 @@ SedaConfig::status_t SedaConfig::gen_next_stages() {
 SedaConfig::status_t SedaConfig::instantiate() {
   SedaConfig::status_t status = init_thread_pool();
   if (status) {
-    VULCAN_LOG(error, "Failed to init thread pool\n");
+    LOG(error, "Failed to init thread pool\n");
     return status;
   }
 
   status = init_stages();
   if (status) {
-    VULCAN_LOG(error, "Failed init stages_\n");
+    LOG(error, "Failed init stages_\n");
     return status;
   }
 
   status = gen_next_stages();
   if (status) {
-    VULCAN_LOG(error, "Failed to generate next stage list\n");
+    LOG(error, "Failed to generate next stage list\n");
     return status;
   }
 
@@ -353,7 +349,7 @@ void SedaConfig::clear_config() {
   while (s_iter != s_end) {
     if (s_iter->second != NULL) {
       Stage *stg = s_iter->second;
-      VULCAN_LOG(info, "Stage {} deleted.", stg->get_name());
+      LOG(info, "Stage {} deleted.", stg->get_name());
       ASSERT((!stg->is_connected()), "{}{}", "Stage connected in clear_config ",
              stg->get_name());
       delete stg;
@@ -362,21 +358,21 @@ void SedaConfig::clear_config() {
     s_iter++;
   }
   stages_.clear();
-  VULCAN_LOG(info, "Seda Stage released");
+  LOG(info, "Seda Stage released");
 
   // delete thread_pools_
   std::map<std::string, Threadpool *>::iterator t_iter = thread_pools_.begin();
   std::map<std::string, Threadpool *>::iterator t_end = thread_pools_.end();
   while (t_iter != t_end) {
     if (t_iter->second != NULL) {
-      VULCAN_LOG(info, "ThreadPool {} deleted.", t_iter->first.c_str());
+      LOG(info, "ThreadPool {} deleted.", t_iter->first.c_str());
       delete t_iter->second;
       t_iter->second = NULL;
     }
     t_iter++;
   }
   thread_pools_.clear();
-  VULCAN_LOG(info, "Seda thread pools released");
+  LOG(info, "Seda thread pools released");
 }
 
 void SedaConfig::get_stage_names(std::vector<std::string> &names) const {

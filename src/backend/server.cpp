@@ -57,20 +57,20 @@ void Server::init() {
 int Server::set_non_block(int fd) {
   int flags = fcntl(fd, F_GETFL);
   if (flags == -1) {
-    VULCAN_LOG(info, "Failed to get flags of fd :{}. ", fd);
+    LOG(info, "Failed to get flags of fd :{}. ", fd);
     return -1;
   }
 
   flags = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
   if (flags == -1) {
-    VULCAN_LOG(info, "Failed to set non-block flags of fd :{}. ", fd);
+    LOG(info, "Failed to set non-block flags of fd :{}. ", fd);
     return -1;
   }
   return 0;
 }
 
 void Server::close_connection(ConnectionContext *client_context) {
-  VULCAN_LOG(info, "Close connection of {}.", client_context->addr);
+  LOG(info, "Close connection of {}.", client_context->addr);
   event_del(&client_context->read_event);
   ::close(client_context->fd);
   delete client_context->session;
@@ -124,27 +124,27 @@ void Server::recv(int fd, int16_t ev, void *arg) {
   MUTEX_UNLOCK(&client->mutex);
 
   if (data_len > buf_size) {
-    VULCAN_LOG(warn, "The length of sql exceeds the limitation {}\n", buf_size);
+    LOG(warn, "The length of sql exceeds the limitation {}\n", buf_size);
     close_connection(client);
     return;
   }
   if (read_len == 0) {
-    VULCAN_LOG(info, "The peer has been closed {}\n", client->addr);
+    LOG(info, "The peer has been closed {}\n", client->addr);
     close_connection(client);
     return;
   } else if (read_len < 0) {
-    VULCAN_LOG(error, "Failed to read socket of {}, {}\n", client->addr,
-               strerror(errno));
+    LOG(error, "Failed to read socket of {}, {}\n", client->addr,
+        strerror(errno));
     close_connection(client);
     return;
   }
 
-  VULCAN_LOG(info, "receive command(size={}): {}", data_len, client->buf);
+  LOG(info, "receive command(size={}): {}", data_len, client->buf);
   SessionEvent *sev = new SessionEvent(client);
   session_stage_->add_event(sev);
   //   const char *ack = "ack";
   //   send(client, ack, strlen(ack) + 1);
-  VULCAN_LOG(info, "Server::recv 执行成功");
+  LOG(info, "Server::recv 执行成功");
 }
 
 // 这个函数仅负责发送数据，至于是否是一个完整的消息，由调用者控制
@@ -156,8 +156,8 @@ int Server::send(ConnectionContext *client, const char *buf, int data_len) {
   MUTEX_LOCK(&client->mutex);
   int ret = writen(client->fd, buf, data_len);
   if (ret < 0) {
-    VULCAN_LOG(error, "Failed to send data back to client. ret={}, error={}",
-               ret, strerror(errno));
+    LOG(error, "Failed to send data back to client. ret={}, error={}", ret,
+        strerror(errno));
     MUTEX_UNLOCK(&client->mutex);
 
     close_connection(client);
@@ -177,15 +177,13 @@ void Server::accept(int fd, int16_t ev, void *arg) {
 
   int client_fd = ::accept(fd, (struct sockaddr *)&addr, &addrlen);
   if (client_fd < 0) {
-    VULCAN_LOG(error, "Failed to accept client's connection, {}",
-               strerror(errno));
+    LOG(error, "Failed to accept client's connection, {}", strerror(errno));
     return;
   }
 
   char ip_addr[24];
   if (inet_ntop(AF_INET, &addr.sin_addr, ip_addr, sizeof(ip_addr)) == nullptr) {
-    VULCAN_LOG(error, "Failed to get ip address of client, {}",
-               strerror(errno));
+    LOG(error, "Failed to get ip address of client, {}", strerror(errno));
     ::close(client_fd);
     return;
   }
@@ -195,8 +193,8 @@ void Server::accept(int fd, int16_t ev, void *arg) {
 
   ret = instance->set_non_block(client_fd);
   if (ret < 0) {
-    VULCAN_LOG(error, "Failed to set socket of {} as non blocking, {}",
-               addr_str.c_str(), strerror(errno));
+    LOG(error, "Failed to set socket of {} as non blocking, {}",
+        addr_str.c_str(), strerror(errno));
     ::close(client_fd);
     return;
   }
@@ -206,9 +204,8 @@ void Server::accept(int fd, int16_t ev, void *arg) {
     int yes = 1;
     ret = setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
     if (ret < 0) {
-      VULCAN_LOG(error,
-                 "Failed to set socket of {} option as : TCP_NODELAY {}\n",
-                 addr_str.c_str(), strerror(errno));
+      LOG(error, "Failed to set socket of {} option as : TCP_NODELAY {}\n",
+          addr_str.c_str(), strerror(errno));
       ::close(client_fd);
       return;
     }
@@ -226,8 +223,7 @@ void Server::accept(int fd, int16_t ev, void *arg) {
 
   ret = event_base_set(instance->event_base_, &client_context->read_event);
   if (ret < 0) {
-    VULCAN_LOG(
-        error,
+    LOG(error,
         "Failed to do event_base_set for read event of {} into libevent, {}",
         client_context->addr, strerror(errno));
     delete client_context;
@@ -237,16 +233,15 @@ void Server::accept(int fd, int16_t ev, void *arg) {
 
   ret = event_add(&client_context->read_event, nullptr);
   if (ret < 0) {
-    VULCAN_LOG(error,
-               "Failed to event_add for read event of {} into libevent, {}",
-               client_context->addr, strerror(errno));
+    LOG(error, "Failed to event_add for read event of {} into libevent, {}",
+        client_context->addr, strerror(errno));
     delete client_context;
     ::close(instance->server_socket_);
     return;
   }
 
   client_context->session = new Session(Session::default_session());
-  VULCAN_LOG(info, "Accepted connection from {}\n", client_context->addr);
+  LOG(info, "Accepted connection from {}\n", client_context->addr);
 }
 
 int Server::start() {
@@ -262,24 +257,23 @@ int Server::start_tcp_server() {
 
   server_socket_ = socket(AF_INET, SOCK_STREAM, 0);
   if (server_socket_ < 0) {
-    VULCAN_LOG(error, "socket(): can not create server socket: {}.",
-               strerror(errno));
+    LOG(error, "socket(): can not create server socket: {}.", strerror(errno));
     return -1;
   }
 
   int yes = 1;
   ret = setsockopt(server_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
   if (ret < 0) {
-    VULCAN_LOG(error, "Failed to set socket option of reuse address: {}.",
-               strerror(errno));
+    LOG(error, "Failed to set socket option of reuse address: {}.",
+        strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
   ret = set_non_block(server_socket_);
   if (ret < 0) {
-    VULCAN_LOG(error, "Failed to set socket option non-blocking:{}. ",
-               strerror(errno));
+    LOG(error, "Failed to set socket option non-blocking:{}. ",
+        strerror(errno));
     ::close(server_socket_);
     return -1;
   }
@@ -291,39 +285,37 @@ int Server::start_tcp_server() {
 
   ret = bind(server_socket_, (struct sockaddr *)&sa, sizeof(sa));
   if (ret < 0) {
-    VULCAN_LOG(error, "bind(): can not bind server socket, {}",
-               strerror(errno));
+    LOG(error, "bind(): can not bind server socket, {}", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
   ret = listen(server_socket_, server_param_.max_connection_num);
   if (ret < 0) {
-    VULCAN_LOG(error, "listen(): can not listen server socket, {}",
-               strerror(errno));
+    LOG(error, "listen(): can not listen server socket, {}", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
-  VULCAN_LOG(info, "Listen on port {}", server_param_.port);
+  LOG(info, "Listen on port {}", server_param_.port);
 
   listen_ev_ = event_new(event_base_, server_socket_, EV_READ | EV_PERSIST,
                          accept, this);
   if (listen_ev_ == nullptr) {
-    VULCAN_LOG(error, "Failed to create listen event, {}.", strerror(errno));
+    LOG(error, "Failed to create listen event, {}.", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
   ret = event_add(listen_ev_, nullptr);
   if (ret < 0) {
-    VULCAN_LOG(error, "event_add(): can not add accept event into libevent, {}",
-               strerror(errno));
+    LOG(error, "event_add(): can not add accept event into libevent, {}",
+        strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
   started_ = true;
-  VULCAN_LOG(info, "VulcanDB server start success");
+  LOG(info, "VulcanDB server start success");
   return 0;
 }
 
@@ -331,15 +323,14 @@ int Server::start_unix_socket_server() {
   int ret = 0;
   server_socket_ = socket(PF_UNIX, SOCK_STREAM, 0);
   if (server_socket_ < 0) {
-    VULCAN_LOG(error, "socket(): can not create unix socket: {}.",
-               strerror(errno));
+    LOG(error, "socket(): can not create unix socket: {}.", strerror(errno));
     return -1;
   }
 
   ret = set_non_block(server_socket_);
   if (ret < 0) {
-    VULCAN_LOG(error, "Failed to set socket option non-blocking:{}. ",
-               strerror(errno));
+    LOG(error, "Failed to set socket option non-blocking:{}. ",
+        strerror(errno));
     ::close(server_socket_);
     return -1;
   }
@@ -354,39 +345,38 @@ int Server::start_unix_socket_server() {
 
   ret = bind(server_socket_, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
   if (ret < 0) {
-    VULCAN_LOG(error, "bind(): can not bind server socket(path={}), {}",
-               sockaddr.sun_path, strerror(errno));
+    LOG(error, "bind(): can not bind server socket(path={}), {}",
+        sockaddr.sun_path, strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
   ret = listen(server_socket_, server_param_.max_connection_num);
   if (ret < 0) {
-    VULCAN_LOG(error, "listen(): can not listen server socket, {}",
-               strerror(errno));
+    LOG(error, "listen(): can not listen server socket, {}", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
-  VULCAN_LOG(info, "Listen on unix socket: {}", sockaddr.sun_path);
+  LOG(info, "Listen on unix socket: {}", sockaddr.sun_path);
 
   listen_ev_ = event_new(event_base_, server_socket_, EV_READ | EV_PERSIST,
                          accept, this);
   if (listen_ev_ == nullptr) {
-    VULCAN_LOG(error, "Failed to create listen event, {}.", strerror(errno));
+    LOG(error, "Failed to create listen event, {}.", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
   ret = event_add(listen_ev_, nullptr);
   if (ret < 0) {
-    VULCAN_LOG(error, "event_add(): can not add accept event into libevent, {}",
-               strerror(errno));
+    LOG(error, "event_add(): can not add accept event into libevent, {}",
+        strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
   started_ = true;
-  VULCAN_LOG(info, "VulcanDB server start success");
+  LOG(info, "VulcanDB server start success");
   return 0;
 }
 
@@ -394,13 +384,13 @@ int Server::serve() {
   evthread_use_pthreads();
   event_base_ = event_base_new();
   if (event_base_ == nullptr) {
-    VULCAN_LOG(error, "Failed to create event base, {}.", strerror(errno));
+    LOG(error, "Failed to create event base, {}.", strerror(errno));
     exit(-1);
   }
 
   int retval = start();
   if (retval == -1) {
-    VULCAN_LOG(panic, "Failed to start network");
+    LOG(panic, "Failed to start network");
     exit(-1);
   }
 
@@ -418,12 +408,12 @@ int Server::serve() {
   }
 
   started_ = false;
-  VULCAN_LOG(info, "Server quit");
+  LOG(info, "Server quit");
   return 0;
 }
 
 void Server::shutdown() {
-  VULCAN_LOG(info, "Server shutting down");
+  LOG(info, "Server shutting down");
 
   // cleanup
   if (event_base_ != nullptr && started_) {

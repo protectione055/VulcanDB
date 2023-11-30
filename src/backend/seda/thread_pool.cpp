@@ -27,13 +27,13 @@ Threadpool::Threadpool(unsigned int threads, const std::string &name)
       n_idles_(0),
       killer_("KillThreads"),
       name_(name) {
-  VULCAN_LOG(trace, "Enter, thread number:{}", threads);
+  LOG(trace, "Enter, thread number:{}", threads);
   MUTEX_INIT(&run_mutex_, NULL);
   COND_INIT(&run_cond_, NULL);
   MUTEX_INIT(&thread_mutex_, NULL);
   COND_INIT(&thread_cond_, NULL);
   add_threads(threads);
-  VULCAN_LOG(trace, "exit");
+  LOG(trace, "exit");
 }
 
 /**
@@ -43,7 +43,7 @@ Threadpool::Threadpool(unsigned int threads, const std::string &name)
  * @post all threads are destroyed and pool is destroyed
  */
 Threadpool::~Threadpool() {
-  VULCAN_LOG(trace, "{}", "enter");
+  LOG(trace, "{}", "enter");
   // kill all the remaining service threads
   kill_threads(nthreads_);
 
@@ -52,7 +52,7 @@ Threadpool::~Threadpool() {
   COND_DESTROY(&run_cond_);
   MUTEX_DESTROY(&thread_mutex_);
   COND_DESTROY(&thread_cond_);
-  VULCAN_LOG(trace, "{}", "exit");
+  LOG(trace, "{}", "exit");
 }
 
 /**
@@ -78,7 +78,7 @@ unsigned int Threadpool::add_threads(unsigned int threads) {
   unsigned int i;
   pthread_t pthread;
   pthread_attr_t pthread_attrs;
-  VULCAN_LOG(trace, "{} adding threads enter{}", name_.c_str(), threads);
+  LOG(trace, "{} adding threads enter{}", name_.c_str(), threads);
   // create all threads as detached.  We will not try to join them.
   pthread_attr_init(&pthread_attrs);
   pthread_attr_setdetachstate(&pthread_attrs, PTHREAD_CREATE_DETACHED);
@@ -90,13 +90,13 @@ unsigned int Threadpool::add_threads(unsigned int threads) {
     int stat = pthread_create(&pthread, &pthread_attrs, Threadpool::run_thread,
                               reinterpret_cast<void *>(this));
     if (stat != 0) {
-      VULCAN_LOG(warn, "Failed to create one thread\n");
+      LOG(warn, "Failed to create one thread\n");
       break;
     }
   }
   nthreads_ += i;
   MUTEX_UNLOCK(&thread_mutex_);
-  VULCAN_LOG(trace, "{}{}", "adding threads exit", threads);
+  LOG(trace, "{}{}", "adding threads exit", threads);
   return i;
 }
 
@@ -112,7 +112,7 @@ unsigned int Threadpool::add_threads(unsigned int threads) {
  * @return number of threads successfully killed.
  */
 unsigned int Threadpool::kill_threads(unsigned int threads) {
-  VULCAN_LOG(trace, "{}{}", "enter - threads to kill", threads);
+  LOG(trace, "{}{}", "enter - threads to kill", threads);
   MUTEX_LOCK(&thread_mutex_);
 
   // allow only one thread kill transaction at a time
@@ -140,7 +140,7 @@ unsigned int Threadpool::kill_threads(unsigned int threads) {
   killer_.disconnect();
 
   MUTEX_UNLOCK(&thread_mutex_);
-  VULCAN_LOG(trace, "{}", "exit");
+  LOG(trace, "{}", "exit");
   return i;
 }
 
@@ -173,7 +173,7 @@ void Threadpool::thread_kill() {
  * @return number of kill thread events successfully scheduled
  */
 unsigned int Threadpool::gen_kill_thread_events(unsigned int to_kill) {
-  VULCAN_LOG(trace, "{}{}", "enter", to_kill);
+  LOG(trace, "{}{}", "enter", to_kill);
   assert(MUTEX_TRYLOCK(&thread_mutex_) != 0);
   assert(to_kill <= nthreads_);
 
@@ -186,7 +186,7 @@ unsigned int Threadpool::gen_kill_thread_events(unsigned int to_kill) {
     }
     killer_.add_event(sevent);
   }
-  VULCAN_LOG(trace, "{}{}", "exit", to_kill);
+  LOG(trace, "{}{}", "exit", to_kill);
   return i;
 }
 
@@ -232,8 +232,8 @@ void *Threadpool::run_thread(void *pool_ptr) {
 
   // this is not portable, but is easier to map to LWP
   int64_t threadid = gettid();
-  VULCAN_LOG(info, "threadid = {}, threadname = {}\n", threadid,
-             pool->get_name().c_str());
+  LOG(info, "threadid = {}, threadname = {}\n", threadid,
+      pool->get_name().c_str());
 
   pthread_setname_np(pthread_self(), pool->get_name().c_str());
 
@@ -286,9 +286,9 @@ void *Threadpool::run_thread(void *pool_ptr) {
     }
     run_stage->release_event();
   }
-  VULCAN_LOG(trace, "exit {}", pool_ptr);
-  VULCAN_LOG(info, "Begin to exit, threadid = {}, threadname = {}", threadid,
-             pool->get_name().c_str());
+  LOG(trace, "exit {}", pool_ptr);
+  LOG(info, "Begin to exit, threadid = {}, threadname = {}", threadid,
+      pool->get_name().c_str());
 
   // the dummy compiler need this
   pthread_exit(NULL);

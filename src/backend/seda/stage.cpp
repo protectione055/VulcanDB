@@ -23,14 +23,14 @@ namespace vulcan {
  */
 Stage::Stage(const char *tag)
     : next_stage_list_(), event_list_(), connected_(false), event_ref_(0) {
-  VULCAN_LOG(trace, "{}", "enter");
+  LOG(trace, "{}", "enter");
   assert(tag != NULL);
 
   MUTEX_INIT(&list_mutex_, NULL);
   COND_INIT(&disconnect_cond_, NULL);
   stage_name_ = new char[strlen(tag) + 1];
   snprintf(stage_name_, strlen(tag) + 1, "%s", tag);
-  VULCAN_LOG(trace, "{}", "exit");
+  LOG(trace, "{}", "exit");
 }
 
 /**
@@ -39,7 +39,7 @@ Stage::Stage(const char *tag)
  * @post pending events are deleted and stage is destroyed
  */
 Stage::~Stage() {
-  VULCAN_LOG(trace, "{}", "enter");
+  LOG(trace, "{}", "enter");
   assert(!connected_);
   MUTEX_LOCK(&list_mutex_);
   while (event_list_.size() > 0) {
@@ -52,7 +52,7 @@ Stage::~Stage() {
   MUTEX_DESTROY(&list_mutex_);
   COND_DESTROY(&disconnect_cond_);
   delete[] stage_name_;
-  VULCAN_LOG(trace, "{}", "exit");
+  LOG(trace, "{}", "exit");
 }
 
 /**
@@ -72,7 +72,7 @@ Stage::~Stage() {
  * @return true if the connection succeeded, else false
  */
 bool Stage::connect() {
-  VULCAN_LOG(trace, "{}{}", "enter", stage_name_);
+  LOG(trace, "{}{}", "enter", stage_name_);
   assert(!connected_);
   assert(th_pool_ != NULL);
 
@@ -96,7 +96,7 @@ bool Stage::connect() {
     }
   }
 
-  VULCAN_LOG(trace, "{}{}%d", "exit", stage_name_, connected_);
+  LOG(trace, "{}{}%d", "exit", stage_name_, connected_);
   return success;
 }
 
@@ -115,7 +115,7 @@ bool Stage::connect() {
 void Stage::disconnect() {
   assert(connected_ == true);
 
-  VULCAN_LOG(trace, "{}{}", "enter", stage_name_);
+  LOG(trace, "{}{}", "enter", stage_name_);
   MUTEX_LOCK(&list_mutex_);
   disconnect_prepare();
   connected_ = false;
@@ -126,7 +126,7 @@ void Stage::disconnect() {
   next_stage_list_.clear();
   cleanup();
   MUTEX_UNLOCK(&list_mutex_);
-  VULCAN_LOG(trace, "{}{}", "exit", stage_name_);
+  LOG(trace, "{}{}", "exit", stage_name_);
 }
 
 /**

@@ -19,7 +19,7 @@ namespace vulcan {
 
 char *strip(char *str_) {
   if (str_ == NULL || *str_ == 0) {
-    VULCAN_LOG(error, "The augument is invalid!");
+    LOG(error, "The augument is invalid!");
     return str_;
   }
 

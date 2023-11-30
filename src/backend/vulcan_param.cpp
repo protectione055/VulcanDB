@@ -27,7 +27,7 @@ VulcanParam::VulcanParam() {}
 void VulcanParam::load_conf_file() {
   IniFile ini_file;
   if (ini_file.load(conf_file_) != 0) {
-    VULCAN_LOG(warn, "Failed to load config file: {}", conf_file_);
+    LOG(warn, "Failed to load config file: {}", conf_file_);
   } else {
     // load settings from config file, if any
     for (auto& entry : default_conf_map_) {
@@ -54,8 +54,7 @@ void VulcanParam::check_and_create_dir(const char* var_name,
       std::filesystem::create_directory(definite_path);
     }
   } catch (std::exception& e) {
-    VULCAN_LOG(error, "Failed to create directory {}: {}", path.string(),
-               e.what());
+    LOG(error, "Failed to create directory {}: {}", path.string(), e.what());
     exit(1);
   }
 }

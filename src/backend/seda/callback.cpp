@@ -63,8 +63,7 @@ void CompletionCallback::event_reschedule(StageEvent *ev) {
 }
 
 void CompletionCallback::event_timeout(StageEvent *ev) {
-  VULCAN_LOG(debug, "to call event_timeout for stage {}}",
-             target_stage_->get_name());
+  LOG(debug, "to call event_timeout for stage {}}", target_stage_->get_name());
   if (ev_hist_flag_) {
     ev->save_stage(target_stage_, StageEvent::TIMEOUT_EV);
   }

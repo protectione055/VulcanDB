@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
 
   init_process(vulcan_param);
 
-  VULCAN_LOG(info, "VulcanDB server listening on port {}",
-             vulcan_param->get_server_port());
+  LOG(info, "VulcanDB server listening on port {}",
+      vulcan_param->get_server_port());
   g_server->serve();
 
   cleanup_process(vulcan_param);
@@ -121,7 +121,7 @@ void init_parameter(int argc, char **argv) {
  */
 void *quit_thread_func(void *_signum) {
   intptr_t signum = (intptr_t)_signum;
-  VULCAN_LOG(info, "Receive signal: {}}", signum);
+  LOG(info, "Receive signal: {}}", signum);
   if (g_server) {
     g_server->shutdown();
   }
@@ -197,7 +197,7 @@ void init_server(vulcan::VulcanParam *config) {
 }
 
 void cleanup_process(vulcan::VulcanParam *config) {
-  VULCAN_LOG(info, "Cleaning up vulcan_ctl process...");
+  LOG(info, "Cleaning up vulcan_ctl process...");
   // remove pid file
   vulcan::removePidFile();
   // remove unix socket file
@@ -214,7 +214,7 @@ void init_seda() {
   SedaConfig *seda = SedaConfig::get_instance();
   SedaConfig::status_t status = seda->init();
   if (status != SedaConfig::SUCCESS) {
-    VULCAN_LOG(error, "SedaConfig init failed");
+    LOG(error, "SedaConfig init failed");
     exit(1);
   }
 }

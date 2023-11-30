@@ -96,12 +96,12 @@ class VulcanLogger {
 };
 
 /*
- * VULCAN_LOG(level, fmt, ...)
+ * LOG(level, fmt, ...)
  * @param level: log level. e.g. trace, info, warn, error, debug, panic
  * @param fmt: format string. e.g. "hello {}"
  * @param ...: format string arguments. e.g. "world"
  */
-#define VULCAN_LOG(level, fmt, ...)                                    \
+#define LOG(level, fmt, ...)                                           \
   do {                                                                 \
     if (vulcan::VulcanLogger::get_instance()->is_init()) {             \
       vulcan::VulcanLogger::get_instance()->level(fmt, ##__VA_ARGS__); \
@@ -115,8 +115,8 @@ class VulcanLogger {
   do {                                                       \
     if (!(expression)) {                                     \
       if (vulcan::VulcanLogger::get_instance()->is_init()) { \
-        VULCAN_LOG(panic, description, ##__VA_ARGS__);       \
-        VULCAN_LOG(panic, "\n");                             \
+        LOG(panic, description, ##__VA_ARGS__);              \
+        LOG(panic, "\n");                                    \
       }                                                      \
       assert(expression);                                    \
     }                                                        \

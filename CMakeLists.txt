@@ -41,7 +41,6 @@ set(VULCAN_CORE_MODULES
 	"common"
 	"ifcparse"
 	"storage"
-	"execution"
 )
 set(SUBMODULES ${VULCAN_CORE_MODULES})
 set(VULCAN_CORE_SRC)

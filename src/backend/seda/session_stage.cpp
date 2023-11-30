@@ -26,7 +26,7 @@ SessionStage::~SessionStage() {}
 Stage *SessionStage::make_stage(const std::string &tag) {
   SessionStage *stage = new (std::nothrow) SessionStage(tag.c_str());
   if (stage == nullptr) {
-    VULCAN_LOG(error, "new ExecutorStage failed");
+    LOG(error, "new ExecutorStage failed");
     return nullptr;
   }
   stage->set_properties();
@@ -48,38 +48,38 @@ bool SessionStage::set_properties() {
 
 // Initialize stage params and validate outputs
 bool SessionStage::initialize() {
-  VULCAN_LOG(trace, "SessionStage initializing");
+  LOG(trace, "SessionStage initializing");
 
   std::list<Stage *>::iterator stgp = next_stage_list_.begin();
   plan_cache_stage_ = *(stgp++);
 
-  VULCAN_LOG(trace, "SessionStage initialized successfully");
+  LOG(trace, "SessionStage initialized successfully");
   return true;
 }
 
 // Cleanup after disconnection
 void SessionStage::cleanup() {
-  VULCAN_LOG(trace, "SessionStage cleaning up...");
+  LOG(trace, "SessionStage cleaning up...");
 
-  VULCAN_LOG(trace, "SessionStage cleanup successfully");
+  LOG(trace, "SessionStage cleanup successfully");
 }
 
 void SessionStage::handle_event(StageEvent *event) {
-  VULCAN_LOG(trace, "SessionStage begin to handle event");
+  LOG(trace, "SessionStage begin to handle event");
 
   // right now, we just support only one event.
   handle_request(event);
 
-  VULCAN_LOG(trace, "SessionStage finish handling event");
+  LOG(trace, "SessionStage finish handling event");
   return;
 }
 
 void SessionStage::callback_event(StageEvent *event, CallbackContext *context) {
-  VULCAN_LOG(trace, "Enter\n");
+  LOG(trace, "Enter\n");
 
   SessionEvent *sev = dynamic_cast<SessionEvent *>(event);
   if (nullptr == sev) {
-    VULCAN_LOG(error, "Cannot cat event to sessionEvent");
+    LOG(error, "Cannot cat event to sessionEvent");
     return;
   }
 
@@ -97,14 +97,14 @@ void SessionStage::callback_event(StageEvent *event, CallbackContext *context) {
   }
 
   // sev->done();
-  VULCAN_LOG(trace, "Exit\n");
+  LOG(trace, "Exit\n");
   return;
 }
 
 void SessionStage::handle_request(StageEvent *event) {
   SessionEvent *sev = dynamic_cast<SessionEvent *>(event);
   if (nullptr == sev) {
-    VULCAN_LOG(error, "Cannot cat event to sessionEvent");
+    LOG(error, "Cannot cat event to sessionEvent");
     return;
   }
 
@@ -116,12 +116,12 @@ void SessionStage::handle_request(StageEvent *event) {
   //     return;
   //   }
 
-  VULCAN_LOG(info, "SessionStage is handling event {}", sev->get_request_buf());
+  LOG(info, "SessionStage is handling event {}", sev->get_request_buf());
   sev->set_response("Hello, world!\n", strlen("Hello, world!\n") + 1);
 
   CompletionCallback *cb = new (std::nothrow) CompletionCallback(this, nullptr);
   if (cb == nullptr) {
-    VULCAN_LOG(error, "Failed to new callback for SessionEvent");
+    LOG(error, "Failed to new callback for SessionEvent");
 
     sev->done_immediate();
     return;
