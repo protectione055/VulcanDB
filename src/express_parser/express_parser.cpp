@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <queue>
 #include <sstream>
 #include <stack>
 #include <string>
@@ -130,18 +131,147 @@ std::string PgSQLGenerator::create_pgsql_for_enum(Type* type) {
   return sql;
 }
 
-std::string PgSQLGenerator::generate_pgsql_for_schema() {
+std::string PgSQLGenerator::typecast_express_to_sql(ExpDesc* desc) {
+  std::string res;
+  //   switch (desc->type) {
+  //     case T_INTEGER:
+  //       res = "INTEGER";
+  //       break;
+  //     case T_REAL:
+  //       res = "REAL";
+  //       break;
+  //     case T_STRING:
+  //       res = "VARCHAR";
+  //       break;
+  //     case T_BOOLEAN:
+  //       res = "BOOLEAN";
+  //       break;
+  //     case T_ENUM:
+  //       Type* type = (Type*)desc;
+  //       res = std::string(type->desc.name);
+  //       break;
+  //     case T_SELECT:
+  //       res = "SPF_SELECT";
+  //       break;
+  //     case T_REFERENCE:
+  //       res = "OID";
+  //       break;
+  //     case T_DERIVED:
+  //       res = typecast_express_to_sql(desc->ref_type);
+  //       break;
+  //     default:
+  //       logger->error("Invalid type: {}", desc->desc.type);
+  //       exit(1);
+  //   }
+  //   if()
+  return res;
+}
+
+std::string PgSQLGenerator::create_pgsql_for_entity(Entity* entity) {
+  std::string sql = "CREATE TABLE " + std::string(entity->desc.name) + " (";
+
+  // 处理属性类型映射
+  for (int i = 0; i < entity->attr_num; i++) {
+    sql += std::string(entity->attr_name[i]) + " ";
+    // sql += typecast_express_to_sql(entity->attr_type[i]);
+    if (!entity->is_optional[i]) {
+      sql += " NOT NULL";
+    }
+    if (i != entity->attr_num - 1) {
+      sql += ", ";
+    }
+  }
+  sql += ")";
+
+  // 处理继承关系
+  if (entity->supertype != NULL) {
+    sql += " INHERITS (" + std::string(entity->supertype->desc.name) + ")";
+  }
+  sql += ";";
+
+  return sql;
+}
+
+std::string PgSQLGenerator::generate_pgsql_for_schema(
+    std::shared_ptr<Schema> schema) {
   std::string res;
 
-  // 生成枚举类型
-  for (int i = 0; i < context_->schema->type_num; i++) {
-    if (context_->schema->types[i]->desc.type == T_ENUM) {
-      res += create_pgsql_for_enum(context_->schema->types[i]);
+  // 增加spf_type的枚举类型
+  res += "CREATE TYPE spf_type AS ENUM (";
+  res += "'INTEGER', 'REAL', 'STRING', 'BOOLEAN', 'ENUM', 'SELECT', 'ENTITY'";
+  res += ");\n";
+
+  // 增加SELECT类型
+  res += "CREATE TYPE  AS (";
+  res += "type spf_type,";
+  res += "value bytea,";
+  res += "label text";
+  res += ");\n";
+
+  // 生成EXPRESS枚举类型的SQL
+  for (int i = 0; i < schema->type_num; i++) {
+    if (schema->types[i]->desc.type == T_ENUM) {
+      res += create_pgsql_for_enum(schema->types[i]);
       res += "\n";
     }
   }
 
-  // TODO(zzm): 生成实体表
+  // 对表进行拓扑排序，然后生成带继承关系的表
+  TopoGraph topo_graph;
+  for (int i = 0; i < schema->entity_num; i++) {
+    for (int j = 0; j < schema->entities[i]->subtype_num; j++) {
+      Entity* subtype = schema->entities[i]->subtypes[j];
+      topo_graph.add_edge(i, get_entity_id(subtype));
+    }
+  }
+  std::vector<int> topo_order = topo_graph.topo_sort();
+  for (auto& entity_id : topo_order) {
+    Entity* entity = find_entity_by_id(schema.get(), entity_id);
+    res += create_pgsql_for_entity(entity);
+    res += "\n";
+  }
+
+  return res;
+}
+
+void TopoGraph::add_node(int node_id) {
+  if (graph_.find(node_id) == graph_.end()) {
+    graph_[node_id] = std::set<int>();
+  }
+}
+
+void TopoGraph::add_edge(int from, int to) {
+  add_node(from);
+  add_node(to);
+  const auto ret = graph_[from].insert(to);
+  if (ret.second) {
+    in_degree_[to]++;
+  }
+}
+
+std::vector<int> TopoGraph::topo_sort() {
+  std::vector<int> res;
+
+  std::queue<int> q;
+  for (auto item : in_degree_) {
+    int node = item.first;
+    int degree = item.second;
+
+    if (degree == 0) {
+      q.push(node);
+    }
+  }
+  while (!q.empty()) {
+    int node = q.front();
+    q.pop();
+    res.push_back(node);
+    for (auto& edge : graph_[node]) {
+      in_degree_[edge]--;
+      if (in_degree_[edge] == 0) {
+        q.push(edge);
+      }
+    }
+  }
   return res;
 }
 
@@ -174,7 +304,7 @@ int main() {
       std::string type_name = command.substr(command.find_first_of(" ") + 1);
       size_t type_id = parse_context->type_id_index[type_name];
       Type* type = parse_context->schema->types[type_id];
-      char* type_tree = serialize_type_tree((ExpDesc*)type);
+      char* type_tree = serialize_type_tree(type);
       printf("%s\n", type_tree);
       free(type_tree);
     } else if (command.substr(0, strlen("entity")) == "entity") {
@@ -210,7 +340,9 @@ int main() {
         }
       }
     } else if (command == "sql") {
-      std::cout << pgsql_generator.generate_pgsql_for_schema() << std::endl;
+      std::cout << pgsql_generator.generate_pgsql_for_schema(
+                       parse_context->schema)
+                << std::endl;
     } else {
       std::cout << "Invalid command: " << command << std::endl;
     }

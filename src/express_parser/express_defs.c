@@ -48,7 +48,7 @@ Type* new_type() {
 Entity* new_entity() {
   Entity* entity = (Entity*)malloc(sizeof(Entity));
   ExpDesc tmp = {
-      .schema = NULL, .index_in_schema = 0, .name = NULL, .type = T_REFERENCE};
+      .schema = NULL, .index_in_schema = 0, .name = NULL, .type = T_DERIVED};
   memcpy(&(entity->desc), &tmp, sizeof(ExpDesc));
   entity->is_abstract = false;
   entity->subtypes;
@@ -127,7 +127,7 @@ void assign_type_args(Type* type_decl, TypeArgs* args) {
   type_decl->enum_num = args->enum_num;
 
   switch (args->type) {
-    case T_REFERENCE: {
+    case T_DERIVED: {
       // 从schema中查找ref_type_name对应的类型声明，并将其赋值给type_decl->ref_type
       char* ref_type_name = args->ref_type_name;
       Type* ref_type = find_type_by_name(schema, ref_type_name);
@@ -203,17 +203,18 @@ void assign_entity_args(Entity* entity_decl, EntityArgs* args) {
   for (int i = args->attr_num - 1; i >= 0; i--) {
     TypeArgs* attr_type_args = args->attr_types[i];
 
-    ExpDesc* attr_type_decl = NULL;
+    Type* attr_type_decl = NULL;
     if (attr_type_args->ref_type_name == NULL) {
-      // 匿名类型，需要创建新的类型描述结构体Type并使用attr_type_args对其进行赋值
-      attr_type_decl = (ExpDesc*)new_type();
+      // 无派生的基本类型，需要创建匿名类型描述结构体Type并使用attr_type_args对其进行赋值
+      attr_type_decl = new_type();
       assign_type_args((Type*)attr_type_decl, attr_type_args);
     } else {
       // 已经声明的派生类型，直接从schema中找到类型定义
-      attr_type_decl =
-          (ExpDesc*)find_type_by_name(schema, attr_type_args->ref_type_name);
+      attr_type_decl = find_type_by_name(schema, attr_type_args->ref_type_name);
       if (attr_type_decl == NULL) {
-        attr_type_decl = (ExpDesc*)find_entity_by_name(
+        attr_type_decl = new_type();
+        attr_type_decl->desc.type = T_REFERENCE;
+        attr_type_decl->ref_type = (ExpDesc*)find_entity_by_name(
             schema, attr_type_args->ref_type_name);
         if (attr_type_decl == NULL) {
           printf("Invalid attr type name: %s", attr_type_args->ref_type_name);
@@ -221,6 +222,7 @@ void assign_entity_args(Entity* entity_decl, EntityArgs* args) {
         }
       }
     }
+    attr_type_decl->is_list = attr_type_args->is_list;
 
     // TODO(zzm):
     // 由于是自下而上解析器，列表中的元素按照规约先后顺序会形成倒序，这个问题应该在语法解析器解决，但暂时不管
@@ -231,34 +233,34 @@ void assign_entity_args(Entity* entity_decl, EntityArgs* args) {
   }
 }
 
-char* serialize_type_tree(ExpDesc* desc) {
+char* serialize_type_tree(Type* type) {
   char* buffer = (char*)malloc(BUFFER_SIZE);
   memset(buffer, 0, BUFFER_SIZE);
   size_t buf_size = BUFFER_SIZE;
-  if (desc->type == T_ENTITY) {
-    snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), " [ENTITY %s]",
-             desc->name);
-    return buffer;
-  }
 
-  Type* type = (Type*)desc;
   snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "%s", "[");
-  if (desc->name != NULL) {
-    snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "%s",
-             desc->name);
-  }
   snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "%s", " ");
   if (type->is_list) {
     snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "%s",
              "LIST OF ");
   }
 
+  if (type->desc.type == T_REFERENCE) {
+    Entity* entity = (Entity*)type->ref_type;
+    snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "ENTITY %s]",
+             entity->desc.name);
+    return buffer;
+  }
+
+  if (type->desc.name != NULL) {
+    snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "%s",
+             type->desc.name);
+  }
+
   switch (type->desc.type) {
-    case T_REFERENCE:
-      assert(((Type*)type->ref_type)->desc.type != T_ENTITY);
-      assert((Type*)type->ref_type != NULL);
-    case T_ENTITY: {
-      char* child_str = serialize_type_tree(type->ref_type);
+    case T_DERIVED: {
+      assert(type->ref_type != NULL);
+      char* child_str = serialize_type_tree((Type*)type->ref_type);
       buffer = resize_buffer(buffer, &buf_size,
                              strlen(buffer) + strlen(child_str) + 2);
       snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "%s",
@@ -275,12 +277,12 @@ char* serialize_type_tree(ExpDesc* desc) {
 
       for (int i = 0; i < type->select_num; i++) {
         // 打印select的可选类型
-        ExpDesc* child = type->select_list[i]->type == T_REFERENCE
+        ExpDesc* child = type->select_list[i]->type == T_DERIVED
                              ? ((Type*)(type->select_list[i]))->ref_type
                              : type->select_list[i];
         if (child->type == T_SELECT || child->type == T_ENUM ||
             child->type != T_ENTITY && ((Type*)child)->is_list) {
-          char* child_str = serialize_type_tree(child);
+          char* child_str = serialize_type_tree((Type*)child);
           buffer = resize_buffer(buffer, &buf_size,
                                  strlen(buffer) + strlen(child_str) + 2);
           snprintf(buffer + strlen(buffer), buf_size - strlen(buffer), "%s",
@@ -364,4 +366,16 @@ void destroy_type_name_args(TypeArgs* args) {
     free(args->select_list);
   }
   free(args);
+}
+
+Entity* find_entity_by_id(Schema* schema, int id) {
+  if (id < 0 || id >= schema->entity_num) {
+    return NULL;
+  }
+  return schema->entities[id];
+}
+
+int get_entity_id(const Entity* entity) {
+  if (entity == NULL) return -1;
+  return entity->desc.index_in_schema;
 }

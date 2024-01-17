@@ -5,6 +5,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -189,15 +190,34 @@ class ExpressParser {
   std::shared_ptr<ExpressParserContext> context_;
 };
 
+class TopoGraph {
+ public:
+  TopoGraph() = default;
+  ~TopoGraph() = default;
+
+  void add_node(int node_id);
+  void add_edge(int from, int to);
+  std::vector<int> topo_sort();
+
+ private:
+  std::map<int, std::set<int>> graph_;
+  std::map<int, int> in_degree_;
+};
+
 class PgSQLGenerator {
  public:
   explicit PgSQLGenerator(std::shared_ptr<ExpressParserContext> context)
       : context_(context) {}
   ~PgSQLGenerator() = default;
 
-  std::string generate_pgsql_for_schema();
+  std::string generate_pgsql_for_schema(std::shared_ptr<Schema> schema);
 
   std::string create_pgsql_for_enum(Type* type);
+  std::string create_pgsql_for_entity(Entity* entity);
+
+ private:
+  std::string typecast_express_to_sql(ExpDesc* desc);
+  //   TypeEnum traverse_type_tree(ExpDesc* desc);
 
  private:
   std::shared_ptr<ExpressParserContext> context_;

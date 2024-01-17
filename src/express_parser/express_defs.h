@@ -5,7 +5,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-
 #endif
 
 #include <stdbool.h>
@@ -22,7 +21,8 @@ typedef enum {
   T_ENTITY,
   T_ENUM,
   T_SELECT,
-  T_REFERENCE,  // TYPE IfcPositiveLengthMeasure = IfcLengthMeasure;
+  T_DERIVED,  // TYPE IfcPositiveLengthMeasure = IfcLengthMeasure;
+  T_REFERENCE,
   T_UNKNOWN
 } TypeEnum;
 
@@ -95,7 +95,7 @@ typedef struct Entity {
 
   bool is_abstract;
   char* attr_name[MAX_ATTR_NUM];     // 属性的名称
-  ExpDesc* attr_type[MAX_ATTR_NUM];  // 属性的类型
+  Type* attr_type[MAX_ATTR_NUM];  // 属性的类型
   bool is_optional[MAX_ATTR_NUM];    // 标记属性是否为可选属性
   size_t attr_num;                   // 属性的数量
 
@@ -126,9 +126,11 @@ void init_entity(void* parser, EntityArgs* args);
 void assign_type_args(Type* type, TypeArgs* args);
 void assign_entity_args(Entity* entity, EntityArgs* args);
 
-char* serialize_type_tree(ExpDesc* desc);
+char* serialize_type_tree(Type* type);
 Entity* find_entity_by_name(Schema* schema, const char* entity_name);
 Type* find_type_by_name(Schema* schema, const char* type_name);
+Entity* find_entity_by_id(Schema* schema, int entity_id);
+int get_entity_id(const Entity* entity);
 
 void destroy_type_name_args(TypeArgs* args);
 
