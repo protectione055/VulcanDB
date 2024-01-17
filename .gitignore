@@ -40,3 +40,10 @@ CTestTestfile.cmake
 *~
 
 /.vscode/
+
+*.yy.h
+*.yy.o
+*.yy.c
+*.tab.h
+*.tab.o
+*.tab.c
