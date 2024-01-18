@@ -2,6 +2,7 @@
 
 #include "express_parser.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -13,6 +14,13 @@
 #include "express_defs.h"
 
 extern "C" int express_parse(const char* s, void* schema);
+
+std::string to_lower(const std::string& str) {
+  std::string res = str;
+  std::transform(res.begin(), res.end(), res.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return res;
+}
 
 Logger* logger = Logger::get_instance();
 
@@ -44,6 +52,16 @@ std::string FileManager::read_file(const std::string& filename) {
   std::string content = buffer.str();
 
   return content;
+}
+
+void FileManager::write_file(const std::string& filename,
+                             const std::string& content) {
+  std::ofstream ofs(filename);
+  if (!ofs.is_open()) {
+    logger->error("Failed to open {}", filename);
+    return;
+  }
+  ofs << content;
 }
 
 std::shared_ptr<ExpressParserContext> ExpressParser::parse(
@@ -131,49 +149,63 @@ std::string PgSQLGenerator::create_pgsql_for_enum(Type* type) {
   return sql;
 }
 
-std::string PgSQLGenerator::typecast_express_to_sql(ExpDesc* desc) {
+std::string PgSQLGenerator::typecast_express_to_sql(Type* type) {
   std::string res;
-  //   switch (desc->type) {
-  //     case T_INTEGER:
-  //       res = "INTEGER";
-  //       break;
-  //     case T_REAL:
-  //       res = "REAL";
-  //       break;
-  //     case T_STRING:
-  //       res = "VARCHAR";
-  //       break;
-  //     case T_BOOLEAN:
-  //       res = "BOOLEAN";
-  //       break;
-  //     case T_ENUM:
-  //       Type* type = (Type*)desc;
-  //       res = std::string(type->desc.name);
-  //       break;
-  //     case T_SELECT:
-  //       res = "SPF_SELECT";
-  //       break;
-  //     case T_REFERENCE:
-  //       res = "OID";
-  //       break;
-  //     case T_DERIVED:
-  //       res = typecast_express_to_sql(desc->ref_type);
-  //       break;
-  //     default:
-  //       logger->error("Invalid type: {}", desc->desc.type);
-  //       exit(1);
-  //   }
-  //   if()
+  switch (type->desc.type) {
+    case T_INTEGER:
+      res = "INTEGER";
+      break;
+    case T_NUMBER:
+      res = "NUMERIC";
+      break;
+    case T_REAL:
+      res = "REAL";
+      break;
+    case T_BINARY:
+    case T_LOGICAL:
+    case T_STRING:
+      res = "VARCHAR";
+      break;
+    case T_BOOLEAN:
+      res = "BOOLEAN";
+      break;
+    case T_ENUM:
+      res = std::string(type->desc.name);
+      break;
+    case T_SELECT:
+      res = "SPF_SELECT";
+      break;
+    case T_REFERENCE:
+      res = "OID";
+      break;
+    case T_DERIVED:
+      res = typecast_express_to_sql((Type*)type->ref_type);
+      break;
+    default:
+      logger->error("Invalid type: {}", type->desc.type);
+      exit(1);
+  }
+  if (type->is_list) {
+    res += "[]";
+  }
   return res;
 }
 
 std::string PgSQLGenerator::create_pgsql_for_entity(Entity* entity) {
-  std::string sql = "CREATE TABLE " + std::string(entity->desc.name) + " (";
+  std::string sql = "CREATE FUNCTION create_" + to_lower(entity->desc.name) +
+                    "() RETURNS BOOLEAN" + +" AS $$\n";
+  sql += "BEGIN\n";
+
+  if (entity->supertype != NULL) {
+    sql += "PERFORM create_" + to_lower(entity->supertype->desc.name) + "();\n";
+  }
+
+  sql += "CREATE TABLE IF NOT EXISTS " + to_lower(entity->desc.name) + "(";
 
   // 处理属性类型映射
   for (int i = 0; i < entity->attr_num; i++) {
-    sql += std::string(entity->attr_name[i]) + " ";
-    // sql += typecast_express_to_sql(entity->attr_type[i]);
+    sql += " \"" + std::string(entity->attr_name[i]) + "\" ";
+    sql += typecast_express_to_sql(entity->attr_type[i]);
     if (!entity->is_optional[i]) {
       sql += " NOT NULL";
     }
@@ -187,7 +219,11 @@ std::string PgSQLGenerator::create_pgsql_for_entity(Entity* entity) {
   if (entity->supertype != NULL) {
     sql += " INHERITS (" + std::string(entity->supertype->desc.name) + ")";
   }
-  sql += ";";
+  sql += ";\n";
+
+  sql += "RETURN TRUE;\n";
+  sql += "END;\n";
+  sql += "$$ LANGUAGE plpgsql;";
 
   return sql;
 }
@@ -197,13 +233,13 @@ std::string PgSQLGenerator::generate_pgsql_for_schema(
   std::string res;
 
   // 增加spf_type的枚举类型
-  res += "CREATE TYPE spf_type AS ENUM (";
+  res += "CREATE TYPE express_type AS ENUM (";
   res += "'INTEGER', 'REAL', 'STRING', 'BOOLEAN', 'ENUM', 'SELECT', 'ENTITY'";
   res += ");\n";
 
   // 增加SELECT类型
-  res += "CREATE TYPE  AS (";
-  res += "type spf_type,";
+  res += "CREATE TYPE spf_select AS (";
+  res += "type express_type,";
   res += "value bytea,";
   res += "label text";
   res += ");\n";
@@ -225,6 +261,8 @@ std::string PgSQLGenerator::generate_pgsql_for_schema(
     }
   }
   std::vector<int> topo_order = topo_graph.topo_sort();
+  Entity* entity = find_entity_by_id(schema.get(), topo_order[0]);
+  assert(entity->supertype == NULL);
   for (auto& entity_id : topo_order) {
     Entity* entity = find_entity_by_id(schema.get(), entity_id);
     res += create_pgsql_for_entity(entity);
@@ -237,6 +275,7 @@ std::string PgSQLGenerator::generate_pgsql_for_schema(
 void TopoGraph::add_node(int node_id) {
   if (graph_.find(node_id) == graph_.end()) {
     graph_[node_id] = std::set<int>();
+    in_degree_[node_id] = 0;
   }
 }
 
@@ -280,7 +319,6 @@ int main() {
 
   logger->set_level(Logger::Level::error);
 
-  // "/home/zzm/projects/VulcanDB/resources/express/IFC4_ADD2.exp";
   std::cout << "input file: ";
   std::cin >> file;
   std::string content = FileManager::read_file(file);
@@ -293,7 +331,6 @@ int main() {
          parse_context->schema->entity_num);
   PgSQLGenerator pgsql_generator(parse_context);
 
-  // TODO(zzm): do something with the schema
   std::string command = "";
   while (true) {
     std::cout << "input command: ";
@@ -340,9 +377,13 @@ int main() {
         }
       }
     } else if (command == "sql") {
-      std::cout << pgsql_generator.generate_pgsql_for_schema(
-                       parse_context->schema)
-                << std::endl;
+      std::string dest_path = "../../resources/express/";
+      size_t basename_len = file.find_last_of(".") - file.find_last_of("/");
+      dest_path += file.substr(file.find_last_of("/"), basename_len) + ".sql";
+      const std::string res =
+          pgsql_generator.generate_pgsql_for_schema(parse_context->schema);
+      FileManager::write_file(dest_path, res);
+      std::cout << "SQL file generated." << dest_path << std::endl;
     } else {
       std::cout << "Invalid command: " << command << std::endl;
     }

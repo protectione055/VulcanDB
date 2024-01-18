@@ -16,6 +16,8 @@
 
 extern "C" int express_parse(const char* s, void* schema);
 
+std::string to_lower(const std::string& str);
+
 class Logger {
  public:
   ~Logger() = default;
@@ -88,7 +90,8 @@ class FileManager {
  public:
   static std::string read_file(const std::string& filename);
 
-  static void write_file() {}
+  static void write_file(const std::string& filename,
+                         const std::string& content);
 };
 
 struct ExpressParserContext {
@@ -216,8 +219,7 @@ class PgSQLGenerator {
   std::string create_pgsql_for_entity(Entity* entity);
 
  private:
-  std::string typecast_express_to_sql(ExpDesc* desc);
-  //   TypeEnum traverse_type_tree(ExpDesc* desc);
+  std::string typecast_express_to_sql(Type* type);
 
  private:
   std::shared_ptr<ExpressParserContext> context_;
