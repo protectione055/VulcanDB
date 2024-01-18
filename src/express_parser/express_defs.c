@@ -1,3 +1,5 @@
+// Copyright 2023-2024 VulcanDB
+
 #include "express_defs.h"
 
 #include <assert.h>

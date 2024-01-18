@@ -193,7 +193,7 @@ type_declaration: TYPE ENTITY_NAME EQ type_name SEMICOLON END_TYPE SEMICOLON    
 type_name: ENTITY_NAME
         {
             debug_printf("[DEBUG] type_name: %s\n", $1);       // Ifcxxx
-            TypeArgs* args = new_type_name_args(NULL, T_REFERENCE);
+            TypeArgs* args = new_type_name_args(NULL, T_DERIVED);
             args->ref_type_name = $1;
             $$ = args;
         }
